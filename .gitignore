@@ -1,0 +1,27 @@
+# Dependencias
+node_modules/
+vendor/
+.venv/
+__pycache__/
+
+# Builds
+dist/
+build/
+out/
+target/
+*.egg-info/
+
+# Logs y temporales
+*.log
+*.tmp
+.cache/
+
+# Entorno y secretos
+.env
+.env.*
+
+# SO / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
