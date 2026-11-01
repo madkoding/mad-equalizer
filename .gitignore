@@ -1,27 +1,27 @@
-# Dependencias
+.DS_Store
+
+# macOS build outputs
+macos/*.app
+macos/*.dmg
+macos/.build/
+macos/tools/artwork
+macos/art/AppIcon.iconset/
+macos/art/dmg_bg.png
+macos/art/dmg_bg@2x.png
+
+# Windows build inputs and outputs
+windows/node_modules/
+windows/.cache/
+windows/vendor/
+windows/dist/
+windows/out/
+
+# Generales
 node_modules/
-vendor/
-.venv/
-__pycache__/
-
-# Builds
-dist/
-build/
-out/
-target/
-*.egg-info/
-
-# Logs y temporales
 *.log
 *.tmp
-.cache/
-
-# Entorno y secretos
 .env
 .env.*
-
-# SO / IDE
-.DS_Store
 Thumbs.db
 .idea/
 .vscode/

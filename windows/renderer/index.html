@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' app:; script-src 'self' app:; style-src 'self' app: 'unsafe-inline'; font-src 'self' app:; media-src 'self' app: blob: mediastream:">
+<title>MAD Equalizer</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="top"><span class="silk">MAD EQUALIZER &nbsp;·&nbsp; 16 BAND STEREO GRAPHIC EQ &nbsp;·&nbsp; EQUALIZER APO</span></div>
+
+<div id="chassis">
+  <div class="cheek left"></div><div class="cheek right"></div>
+  <div class="screw" style="left:32px;top:10px"></div><div class="screw" style="right:32px;top:10px"></div>
+  <div class="screw" style="left:32px;bottom:10px"></div><div class="screw" style="right:32px;bottom:10px"></div>
+
+  <div id="content">
+    <header>
+      <canvas id="vuL" class="meter"></canvas>
+      <div class="center">
+        <div class="brand">
+          <span class="logo">MAD</span><span class="sub">EQUALIZER</span><span class="grow"></span><span class="bands">16 BAND</span>
+        </div>
+        <div class="display">
+          <div class="row r1">
+            <button class="field link" id="output" title="Elegir dispositivos de Equalizer APO">
+              <label>OUTPUT ▾</label><span class="seg" id="outSeg" data-cells="10" data-size="20" data-lead="1"></span>
+            </button>
+            <span class="grow"></span>
+            <div class="field"><label>BAND</label><span class="seg" id="bandSeg" data-cells="2" data-size="20"></span></div>
+            <div class="field"><label>FREQ HZ</label><span class="seg" id="freqSeg" data-cells="5" data-size="20"></span></div>
+            <div class="field"><label>GAIN DB</label><span class="seg" id="gainSeg" data-cells="4" data-size="20"></span></div>
+          </div>
+          <div class="row r2">
+            <div class="field"><label>LUFS M</label><span class="seg" id="lufsM" data-cells="4" data-size="15"></span></div>
+            <div class="field"><label>LUFS S</label><span class="seg" id="lufsS" data-cells="4" data-size="15"></span></div>
+            <button class="field link" id="lufsIBtn" title="Clic para reiniciar el loudness integrado"><label>LUFS I</label><span class="seg" id="lufsI" data-cells="4" data-size="15"></span></button>
+            <div class="field"><label>PEAK</label><span class="seg" id="peakSeg" data-cells="4" data-size="15"></span></div>
+            <div class="field"><label>CREST</label><span class="seg" id="crestSeg" data-cells="3" data-size="15"></span></div>
+            <span class="grow"></span>
+            <div class="bars">
+              <div class="bar"><label>CORR</label><canvas id="corrBar"></canvas></div>
+              <div class="bar"><label>GR</label><canvas id="grBar"></canvas></div>
+            </div>
+          </div>
+          <div class="row r3">
+            <span class="lamp" id="lampApo">APO</span>
+            <span class="lamp" id="lampSignal">SIGNAL</span>
+            <span class="lamp" id="lampEq">EQ</span>
+            <span class="lamp" id="lampBypass">BYPASS</span>
+            <span class="lamp" id="lampAuto">AUTO</span>
+            <span class="lamp" id="lampChan">LINK</span>
+            <span class="grow"></span>
+            <span class="status" id="status">STANDBY</span>
+          </div>
+        </div>
+      </div>
+      <canvas id="vuR" class="meter"></canvas>
+    </header>
+
+    <div class="well"><canvas id="faders"></canvas></div>
+
+    <section class="controls">
+      <div class="power-wrap">
+        <button id="power" title="Encender / apagar el ecualizador"><span class="ring"></span><span class="cap"><svg viewBox="0 0 24 24"><path d="M12 3v9M6.3 6.3a8 8 0 1 0 11.4 0" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"/></svg></span></button>
+        <span class="silk">POWER</span>
+      </div>
+      <div class="col" id="leftKeys"></div>
+      <div class="sep"></div>
+      <div class="rows">
+        <div class="row" id="rowPreset"><span class="pill">PRESET</span></div>
+        <div class="row" id="rowFilter"><span class="pill">FILTER</span></div>
+        <div class="row" id="rowMemory"><span class="pill">MEMORY</span></div>
+        <div class="row" id="rowMode"><span class="pill">MODE</span></div>
+      </div>
+      <span class="grow"></span>
+      <div class="knobs" id="knobs"></div>
+    </section>
+  </div>
+</div>
+<script type="module" src="app.js"></script>
+</body>
+</html>

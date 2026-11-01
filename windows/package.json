@@ -1,0 +1,20 @@
+{
+  "name": "mad-equalizer",
+  "productName": "MAD Equalizer",
+  "version": "2.0.0",
+  "description": "Vintage 16-band graphic equalizer for Windows (Equalizer APO front-end)",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "demo": "electron . --demo"
+  },
+  "devDependencies": {
+    "@electron/packager": "^18.4.4",
+    "electron": "^33.4.11",
+    "resedit": "^2.0.3"
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  }
+}

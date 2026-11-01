@@ -1,0 +1,16 @@
+#!/bin/zsh
+# Arma la app de Windows x64: Electron oficial (verificado) + la app + icono.
+set -e
+cd "$(dirname "$0")"
+V=33.4.11
+ZIP=.cache/electron-v$V-win32-x64.zip
+[[ -f $ZIP ]] || { echo "Falta $ZIP (descárgalo de las releases de Electron)"; exit 1; }
+OUT="dist/MAD Equalizer"
+rm -rf dist && mkdir -p "$OUT"
+unzip -q "$ZIP" -d "$OUT"
+mv "$OUT/electron.exe" "$OUT/MADEqualizer.exe"
+rm -f "$OUT/resources/default_app.asar"
+mkdir -p "$OUT/resources/app"
+cp -R package.json main.js preload.js renderer assets "$OUT/resources/app/"
+node tools-icon.js "$OUT/MADEqualizer.exe"
+echo "OK: $(du -sh "$OUT" | cut -f1) en $OUT"

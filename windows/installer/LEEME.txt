@@ -1,0 +1,67 @@
+MAD EQUALIZER 2.0 PARA WINDOWS
+Ecualizador gráfico estéreo de 16 bandas para todo el audio del PC
+=====================================================================
+
+REQUISITOS
+  • Windows 10 u 11 de 64 bits
+  • Equalizer APO (gratuito): viene incluido en el instalador
+
+
+INSTALACIÓN
+  1. Ejecuta MAD-Equalizer-2.0-Setup.exe y acepta el aviso de
+     administrador.
+  2. Si Equalizer APO aún no está instalado, su instalador se abre solo.
+     Cuando aparezca el "Configurator", MARCA LOS DISPOSITIVOS DONDE
+     ESCUCHAS (audífonos, altavoces, HDMI...) y pulsa OK.
+  3. Reinicia Windows cuando te lo pida. Equalizer APO sólo empieza a
+     funcionar después de reiniciar.
+  4. Abre MAD Equalizer desde el menú Inicio o el acceso del escritorio.
+
+
+WINDOWS NO ME DEJA EJECUTARLO ("WINDOWS PROTEGIÓ SU PC")
+  El instalador no está firmado con un certificado de pago, así que
+  SmartScreen avisa al descargarlo. Pulsa "Más información" y luego
+  "Ejecutar de todas formas".
+
+  Si Windows lo sigue bloqueando, quita la marca de "descargado de
+  Internet": clic derecho en el archivo > Propiedades > marca
+  "Desbloquear" > Aceptar. O abre PowerShell en la carpeta del archivo
+  y ejecuta:
+
+       Unblock-File .\MAD-Equalizer-2.0-Setup.exe
+
+
+EL ECUALIZADOR NO HACE EFECTO
+  • Comprueba que Equalizer APO esté activado en el dispositivo donde
+    escuchas: en MAD Equalizer pulsa "OUTPUT" en el display (abre el
+    Device Selector de Equalizer APO), marca tu dispositivo y reinicia.
+  • Windows 11: Configuración > Sistema > Sonido > (tu dispositivo) >
+    "Mejoras de audio" debe estar en "Efectos predeterminados del
+    dispositivo", no en Desactivado.
+  • Los audífonos Bluetooth y los dispositivos USB cuentan como
+    dispositivos distintos: hay que marcar cada uno en el Device Selector.
+  • Si aún no funciona, en el Device Selector abre "Troubleshooting
+    options" y activa "Install as SFX/MFX".
+
+  El display muestra "APO" encendido cuando MAD puede escribir la
+  configuración de Equalizer APO. "EQUALIZER APO NO INSTALADO" significa
+  que no está instalado.
+
+
+USO RÁPIDO
+  • Volumen: usa las teclas de volumen de Windows como siempre.
+  • Faders: arrastra la perilla o haz clic en el riel. Doble clic = 0 dB.
+  • Perillas: arrastra hacia arriba o abajo. Doble clic = valor inicial.
+  • STORE + M1–M4 guarda una curva; M1–M4 la recupera. A/B compara dos.
+  • ANTI CLIP baja la ganancia lo justo para que la curva no sature.
+  • LUFS I: haz clic sobre la cifra para reiniciar la medición.
+  • POWER apagado o BYPASS: el audio pasa sin cambios.
+  • Los medidores leen una copia de lo que suena; no se graba ni se
+    guarda nada.
+
+
+DESINSTALAR
+  Configuración > Aplicaciones > Aplicaciones instaladas >
+  MAD Equalizer > Desinstalar.
+  Equalizer APO es un programa aparte: desinstálalo del mismo modo si ya
+  no lo quieres.

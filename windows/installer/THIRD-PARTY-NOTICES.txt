@@ -1,0 +1,25 @@
+MAD EQUALIZER 2.0 - THIRD-PARTY NOTICES / AVISOS DE TERCEROS
+=====================================================================
+
+Equalizer APO 1.4.2
+  Copyright (C) Jonas Thedering
+  License: GNU General Public License, version 2 (see licenses/GPL-2.0.txt)
+  The installer of MAD Equalizer includes the unmodified official installer
+  EqualizerAPO-x64-1.4.2.exe. Its complete source code is available at:
+    https://sourceforge.net/projects/equalizerapo/
+  On request, we will provide a copy of the corresponding source code.
+  MAD Equalizer only writes configuration files that Equalizer APO reads;
+  it does not include or modify Equalizer APO code.
+
+Electron 33
+  Copyright (c) Electron contributors, Copyright (c) 2013-2020 GitHub Inc.
+  License: MIT. Chromium and other bundled component licenses are in
+  LICENSES.chromium.html in the installation folder.
+
+Michroma font
+  Copyright 2011 The Michroma Project Authors
+  License: SIL Open Font License 1.1 (see licenses/OFL-Michroma.txt)
+
+DSEG font (DSEG14 Classic Italic)
+  Copyright (c) 2020, keshikan, with Reserved Font Name "DSEG"
+  License: SIL Open Font License 1.1 (see licenses/OFL-DSEG.txt)

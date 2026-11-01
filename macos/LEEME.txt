@@ -1,0 +1,65 @@
+MAD EQUALIZER 2.0
+Ecualizador gráfico estéreo de 16 bandas para todo el audio del Mac
+=====================================================================
+
+REQUISITOS
+  • macOS 14.4 (Sonoma) o posterior
+  • Mac con Apple Silicon o Intel
+  • No necesita BlackHole ni ningún otro driver de audio
+
+
+INSTALACIÓN
+  1. Arrastra "MAD Equalizer" a la carpeta Aplicaciones.
+  2. Abre la app desde Aplicaciones (no desde el DMG).
+  3. Pulsa POWER. La primera vez, macOS pedirá permiso para grabar el
+     audio del sistema: pulsa "Permitir". Sin ese permiso no se oye nada
+     mientras el ecualizador está encendido.
+
+
+¿NO ABRE? ("ESTÁ DAÑADA" / "NO SE PUEDE VERIFICAR AL DESARROLLADOR")
+  La app no está notarizada por Apple, así que macOS la bloquea al
+  descargarla. Para quitar ese bloqueo (la "cuarentena"):
+
+  1. Abre la app Terminal (Aplicaciones > Utilidades > Terminal).
+  2. Copia y pega este comando y pulsa Enter:
+
+       xattr -dr com.apple.quarantine "/Applications/MAD Equalizer.app"
+
+  3. Vuelve a abrir MAD Equalizer.
+
+  Alternativa sin Terminal: intenta abrir la app una vez, luego ve a
+  Ajustes del Sistema > Privacidad y seguridad, baja hasta el mensaje
+  sobre "MAD Equalizer" y pulsa "Abrir igualmente".
+
+
+NO SE OYE NADA CON LA APP ENCENDIDA
+  Revisa el permiso de audio:
+  Ajustes del Sistema > Privacidad y seguridad >
+  Grabación de pantalla y audio del sistema > "Solo audio del sistema"
+  y activa MAD Equalizer. Luego apaga y enciende POWER.
+
+  Si sigue sin sonar, cierra la app (el audio vuelve a la normalidad) y
+  reinicia el servicio de audio con este comando en Terminal (pide tu
+  contraseña):
+
+       sudo killall coreaudiod
+
+
+USO RÁPIDO
+  • Volumen: usa las teclas de volumen del Mac como siempre.
+  • Salida: elige tus audífonos o altavoces en el menú de sonido de macOS
+    o pulsando "OUTPUT" en el display; el ecualizador los sigue solo.
+  • Faders: arrastra la perilla o haz clic en el riel. Doble clic = 0 dB.
+  • Perillas: arrastra hacia arriba o abajo. Doble clic = valor inicial.
+  • STORE + M1–M4 guarda una curva; M1–M4 la recupera. A/B compara dos.
+  • LUFS I: haz clic sobre la cifra para reiniciar la medición.
+  • APPS: marca las apps que quieres oír sin ecualizar (por ejemplo,
+    videollamadas).
+  • Cerrar la ventana cierra la app y el audio vuelve a sonar normal.
+
+
+DESINSTALAR
+  Arrastra "MAD Equalizer" desde Aplicaciones a la Papelera.
+  Para borrar también los ajustes guardados, en Terminal:
+
+       defaults delete local.eq16
