@@ -447,7 +447,8 @@ final class MeterModel: ObservableObject {
         guard timer == nil else { return }
         let debug = ProcessInfo.processInfo.environment["EQ_DEBUG"] != nil
         timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self, weak eq] _ in
-            Task { @MainActor in self?.step(eq, debug: debug) }
+            guard let self, let eq else { return }
+            Task { @MainActor in self.step(eq, debug: debug) }
         }
     }
 
