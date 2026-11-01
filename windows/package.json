@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "@electron/packager": "^18.4.4",
-    "electron": "^33.4.11",
+    "electron": "^42.11.16",
     "resedit": "^2.0.3"
   },
   "allowScripts": {
