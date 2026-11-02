@@ -10,9 +10,9 @@
     "demo": "electron . --demo"
   },
   "devDependencies": {
-    "@electron/packager": "^18.4.4",
+    "@electron/packager": "^20.3.0",
     "electron": "^33.4.11",
-    "resedit": "^2.0.3"
+    "resedit": "^3.1.0"
   },
   "allowScripts": {
     "electron@33.4.11": true
