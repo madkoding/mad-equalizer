@@ -46,8 +46,8 @@ Builds from macOS or Linux. Requires Node.js and NSIS (`brew install makensis`).
 cd windows
 npm install
 # Official Electron runtime for Windows (verify it against SHASUMS256.txt of the same release)
-mkdir -p .cache && curl -L -o .cache/electron-v33.4.11-win32-x64.zip \
-  https://github.com/electron/electron/releases/download/v33.4.11/electron-v33.4.11-win32-x64.zip
+mkdir -p .cache && curl -L -o .cache/electron-v42.11.16-win32-x64.zip \
+  https://github.com/electron/electron/releases/download/v42.11.16/electron-v42.11.16-win32-x64.zip
 # Official Equalizer APO installer (bundled into the setup)
 mkdir -p vendor && curl -L -o vendor/EqualizerAPO-x64-1.4.2.exe \
   https://sourceforge.net/projects/equalizerapo/files/1.4.2/EqualizerAPO-x64-1.4.2.exe/download

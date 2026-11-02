@@ -39,3 +39,33 @@ jobs:
           for f in main.js preload.js tools-icon.js renderer/*.js; do
             node --check "$f"
           done
+
+  windows-package:
+    name: Package Windows app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Install zsh
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zsh
+      - name: Install dependencies
+        working-directory: windows
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: npm ci
+      - name: Download Electron runtime (verified)
+        working-directory: windows
+        run: |
+          V=$(sed -n 's/^V=//p' pack.sh)
+          mkdir -p .cache
+          base=https://github.com/electron/electron/releases/download/v$V
+          curl -sSLf -o .cache/electron-v$V-win32-x64.zip $base/electron-v$V-win32-x64.zip
+          curl -sSLf -o SHASUMS256.txt $base/SHASUMS256.txt
+          grep " \*electron-v$V-win32-x64.zip$" SHASUMS256.txt | sed 's#\*#.cache/#' | sha256sum -c -
+      - name: Package app
+        working-directory: windows
+        run: ./pack.sh
