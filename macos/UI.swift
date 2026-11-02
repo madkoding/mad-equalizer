@@ -816,6 +816,25 @@ struct LEDKey: View {
     }
 }
 
+private struct HalfSizeKey_Binding: EnvironmentKey {
+    static let defaultValue: Binding<Bool> = .constant(false)
+}
+extension EnvironmentValues {
+    var halfSizeBinding: Binding<Bool> {
+        get { self[HalfSizeKey_Binding.self] }
+        set { self[HalfSizeKey_Binding.self] = newValue }
+    }
+}
+
+/// Reduce toda la ventana a la mitad (50 %) y la restaura.
+struct HalfSizeKey: View {
+    @Environment(\.halfSizeBinding) private var half
+    var body: some View {
+        LEDKey("50%", on: half.wrappedValue) { half.wrappedValue.toggle() }
+            .help("Reducir toda la ventana a la mitad (50 %)")
+    }
+}
+
 /// STORE parpadea mientras espera que elijas la memoria donde guardar.
 struct StoreKey: View {
     @ObservedObject var eq: EQModel
@@ -928,6 +947,8 @@ struct Screw: View {
 struct RootView: View {
     @StateObject private var eq = EQModel()
     @StateObject private var meters = MeterModel()
+    /// Reducir toda la ventana al 50 %; se recuerda entre sesiones.
+    @AppStorage("halfSize") private var halfSize = false
     static let size = CGSize(width: 1120, height: 772)
 
     var body: some View {
@@ -959,6 +980,11 @@ struct RootView: View {
         .titlebarColor(Color(red: 0.04, green: 0.045, blue: 0.05))
         .preferredColorScheme(.dark)
         .onAppear { meters.attach(eq) }
+        .environment(\.halfSizeBinding, $halfSize)
+        .scaleEffect(halfSize ? 0.5 : 1, anchor: .topLeading)
+        .frame(width: Self.size.width * (halfSize ? 0.5 : 1),
+               height: Self.size.height * (halfSize ? 0.5 : 1),
+               alignment: .topLeading)
     }
 
     private var header: some View {
@@ -1056,6 +1082,7 @@ struct RootView: View {
                     LEDKey("AUTO GAIN", on: eq.autoGain) { eq.autoGain.toggle() }
                         .help("Compensa el volumen para comparar curvas a igual loudness")
                     LEDKey("CURVE", on: eq.showCurve) { eq.showCurve.toggle() }
+                    HalfSizeKey()
                     LEDKey("SCOPE", on: eq.scopeMode) { eq.scopeMode.toggle() }
                         .help("Goniómetro en lugar del VU derecho")
                     LEDKey("APPS", on: !eq.excludedApps.isEmpty) { eq.showApps.toggle() }
