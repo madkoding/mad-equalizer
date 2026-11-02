@@ -8,5 +8,6 @@ contextBridge.exposeInMainWorld('mad', {
   status: () => ipcRenderer.invoke('apo:status'),
   write: (text) => ipcRenderer.invoke('apo:write', text),
   openDevices: () => ipcRenderer.invoke('apo:devices'),
+  half: (value) => ipcRenderer.invoke('window:half', value),
   openSoundSettings: () => ipcRenderer.invoke('sys:sound'),
 });

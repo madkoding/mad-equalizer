@@ -66,10 +66,37 @@ async function writeConfig(text) {
   }
 }
 
-function createWindow() {
+// Tamaño reducido al 50 %: preferencia guardada en la carpeta de datos de la app.
+const prefsFile = () => path.join(app.getPath('userData'), 'prefs.json');
+function readHalf() {
+  try { return JSON.parse(fs.readFileSync(prefsFile(), 'utf8')).half === true; } catch { return false; }
+}
+function writeHalf(half) {
+  try { fs.writeFileSync(prefsFile(), JSON.stringify({ half })); } catch { /* sin preferencia guardada */ }
+}
+
+let mainWin = null;
+let halfSize = false;
+
+// Con escalado alto de Windows (125–150 %) la ventana podría no caber: se reduce entera.
+function fitZoom() {
   const area = screen.getPrimaryDisplay().workAreaSize;
-  // Con escalado alto de Windows (125–150 %) la ventana podría no caber: se reduce entera.
-  const zoom = Math.min(1, (area.width - 24) / WIDTH, (area.height - 24) / HEIGHT);
+  return Math.min(1, (area.width - 24) / WIDTH, (area.height - 24) / HEIGHT);
+}
+const currentZoom = () => fitZoom() * (halfSize ? 0.5 : 1);
+
+function applyZoom() {
+  const win = mainWin;
+  if (!win || win.isDestroyed()) return;
+  const zoom = currentZoom();
+  win.setContentSize(Math.round(WIDTH * zoom), Math.round(HEIGHT * zoom));
+  win.webContents.setZoomFactor(zoom);
+  if (WIN) win.setTitleBarOverlay({ color: '#0a0b0d', symbolColor: '#c9ced6', height: Math.round(30 * zoom) });
+}
+
+function createWindow() {
+  halfSize = readHalf();
+  const zoom = currentZoom();
   const win = new BrowserWindow({
     width: Math.round(WIDTH * zoom),
     height: Math.round(HEIGHT * zoom),
@@ -92,7 +119,8 @@ function createWindow() {
     },
   });
   win.setMenuBarVisibility(false);
-  win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(zoom));
+  mainWin = win;
+  win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(currentZoom()));
   win.loadURL('app://mad/index.html');
 }
 
@@ -118,6 +146,14 @@ app.whenReady().then(() => {
     const exe = info.installPath && path.join(info.installPath, 'DeviceSelector.exe');
     if (exe && fs.existsSync(exe)) return shell.openPath(exe);
     return 'NO DISPONIBLE';
+  });
+  ipcMain.handle('window:half', (_e, half) => {
+    if (typeof half === 'boolean') {
+      halfSize = half;
+      writeHalf(half);
+      applyZoom();
+    }
+    return halfSize;
   });
   ipcMain.handle('sys:sound', () => (WIN ? shell.openExternal('ms-settings:sound') : null));
 
