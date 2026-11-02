@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MAD Equalizer</title>
+<meta name="description" content="Ecualizador gráfico estéreo vintage de 16 bandas para todo el audio del equipo. macOS y Windows.">
+<style>
+  :root { --bg:#0a0b0d; --panel:#14171b; --ink:#d1d9e3; --mute:#8b95a3; --led:#4aa3ff; --line:#252a31; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  main { max-width:1040px; margin:0 auto; padding:48px 16px 64px; }
+  h1 { font-size:clamp(2rem,6vw,3.2rem); letter-spacing:.12em; margin:0; font-weight:600; }
+  h1 span { color:var(--led); }
+  p.lead { color:var(--mute); max-width:60ch; margin:.6rem 0 1.6rem; }
+  img.shot { width:100%; height:auto; border-radius:10px; border:1px solid var(--line); display:block; box-shadow:0 18px 60px rgba(74,163,255,.12); }
+  .downloads { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px; margin:32px 0; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px; }
+  .card h2 { margin:0 0 4px; font-size:1.1rem; }
+  .card small { color:var(--mute); display:block; margin-bottom:14px; }
+  a.btn { display:inline-block; padding:10px 18px; border-radius:6px; background:var(--led); color:#04101f; font-weight:600; text-decoration:none; }
+  a.btn[aria-disabled="true"] { background:var(--line); color:var(--mute); pointer-events:none; }
+  a.btn:focus-visible, a:focus-visible { outline:2px solid #fff; outline-offset:2px; }
+  ul { color:var(--mute); padding-left:1.2rem; }
+  footer { margin-top:40px; color:var(--mute); font-size:.9rem; }
+  footer a { color:var(--led); }
+</style>
+</head>
+<body>
+<main>
+  <h1>MAD <span>EQUALIZER</span></h1>
+  <p class="lead">Ecualizador gráfico estéreo vintage de 16 bandas para <strong>todo</strong> el audio del equipo, con analizador de espectro de LEDs, displays de 14 segmentos y VU analógicos. / Vintage 16-band stereo graphic equalizer for all of your computer's audio.</p>
+
+  <img class="shot" src="img/screenshot.png" alt="Captura de MAD Equalizer con el analizador de espectro y los medidores VU en marcha" width="1120" height="802">
+
+  <section class="downloads" aria-label="Descargas">
+    <div class="card">
+      <h2>macOS</h2>
+      <small id="mac-info">macOS 14.4 o posterior · Apple Silicon e Intel</small>
+      <a class="btn" id="mac-btn" href="https://github.com/madkoding/mad-equalizer/releases/latest" aria-disabled="false">Descargar .dmg</a>
+    </div>
+    <div class="card">
+      <h2>Windows</h2>
+      <small id="win-info">Incluye Equalizer APO · x64</small>
+      <a class="btn" id="win-btn" href="https://github.com/madkoding/mad-equalizer/releases/latest" aria-disabled="false">Descargar .zip</a>
+    </div>
+  </section>
+
+  <ul>
+    <li>16 bandas ISO (20 Hz – 20 kHz), ±12 o ±6 dB, Q constante o proporcional.</li>
+    <li>Medidores VU, LUFS (momentáneo, corto e integrado), goniómetro y correlación de fase.</li>
+    <li>Presets, 4 memorias, comparación A/B, auto-gain y edición L/R independiente.</li>
+    <li>Las compilaciones no están firmadas; las instrucciones de instalación vienen dentro de cada descarga.</li>
+  </ul>
+
+  <footer>
+    <span id="version"></span>
+    <a href="https://github.com/madkoding/mad-equalizer">Código fuente</a> ·
+    <a href="https://github.com/madkoding/mad-equalizer/releases">Todas las versiones</a>
+  </footer>
+</main>
+<script>
+  // Busca el último release y apunta cada botón a su archivo; si falla, quedan los enlaces a /releases/latest.
+  fetch('https://api.github.com/repos/madkoding/mad-equalizer/releases/latest', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(r => r.ok ? r.json() : Promise.reject(r.status))
+    .then(rel => {
+      const find = (re) => (rel.assets || []).find(a => re.test(a.name));
+      const set = (id, asset, infoId) => {
+        const el = document.getElementById(id);
+        if (asset) {
+          el.href = asset.browser_download_url;
+          const mb = (asset.size / 1048576).toFixed(0);
+          document.getElementById(infoId).textContent += ' · ' + mb + ' MB';
+        }
+      };
+      set('mac-btn', find(/\.dmg$/i), 'mac-info');
+      set('win-btn', find(/windows.*\.zip$/i), 'win-info');
+      document.getElementById('version').textContent = 'Última versión: ' + rel.tag_name + ' · ';
+    })
+    .catch(() => {});
+</script>
+</body>
+</html>

@@ -10,10 +10,17 @@ const { pathToFileURL } = require('url');
 const WIN = process.platform === 'win32';
 // Fuera de Windows (o con --demo) no hay Equalizer APO: la configuración va a una carpeta local
 // y el audio es una señal de prueba. Sirve para desarrollar y revisar la interfaz.
-const DEMO = !WIN || process.argv.includes('--demo');
+const DEMO = !WIN || process.argv.includes('--demo') || !!SHOT;
 const WIDTH = 1120, HEIGHT = 802;
+// --screenshot=<archivo.png>: abre la app en modo demo, elige un preset, guarda una captura y sale.
+// Sirve para generar las imágenes del README y de la página web desde CI.
+const SHOT = (process.argv.find(a => a.startsWith('--screenshot=')) || '').slice('--screenshot='.length);
 const CONFIG_FILE = 'MAD.txt';
 const INCLUDE_LINE = `Include: ${CONFIG_FILE}`;
+
+// Perfil limpio para que la captura no dependa de preferencias guardadas.
+if (SHOT) app.commandLine.appendSwitch('force-device-scale-factor', '2');
+if (SHOT) app.setPath('userData', fs.mkdtempSync(path.join(require('os').tmpdir(), 'mad-shot-')));
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true } },
@@ -122,6 +129,26 @@ function createWindow() {
   mainWin = win;
   win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(currentZoom()));
   win.loadURL('app://mad/index.html');
+  if (SHOT) takeScreenshot(win, SHOT);
+}
+
+function takeScreenshot(win, file) {
+  win.webContents.once('did-finish-load', async () => {
+    try {
+      await new Promise(r => setTimeout(r, 1500));
+      // Un preset con curva marcada y el equipo encendido (ya lo está por defecto).
+      await win.webContents.executeJavaScript("[...document.querySelectorAll('#rowPreset button')].find(b => b.textContent === 'ROCK')?.click()");
+      await new Promise(r => setTimeout(r, 4000));
+      const image = await win.webContents.capturePage();
+      fs.mkdirSync(path.dirname(path.resolve(file)), { recursive: true });
+      fs.writeFileSync(file, image.toPNG());
+      console.log('Captura guardada:', file);
+      app.exit(0);
+    } catch (e) {
+      console.error(e);
+      app.exit(1);
+    }
+  });
 }
 
 app.whenReady().then(() => {

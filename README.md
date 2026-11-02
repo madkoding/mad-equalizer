@@ -4,6 +4,10 @@ A vintage 16-band stereo graphic equalizer for **all** of your computer's audio,
 
 *Ecualizador gráfico estéreo vintage de 16 bandas para **todo** el audio del equipo, con analizador de espectro de LEDs azules, displays de 14 segmentos y medidores VU analógicos. Disponible para **macOS** y **Windows**. [Versión en español más abajo](#español).*
 
+![MAD Equalizer](docs/img/screenshot.png)
+
+**[Download the latest release](https://github.com/madkoding/mad-equalizer/releases/latest)** (`.dmg` for macOS, `.zip` with the installer for Windows) · **[Website](https://madkoding.github.io/mad-equalizer/)**
+
 ## Features
 
 - 16 ISO bands (20 Hz – 20 kHz), ±12 dB or ±6 dB range, constant or proportional Q
