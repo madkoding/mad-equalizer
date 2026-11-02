@@ -70,6 +70,10 @@ xattr -dr com.apple.quarantine "/Applications/MAD Equalizer.app"
 
 On Windows, SmartScreen shows "Windows protected your PC": click **More info → Run anyway**. Details are in each platform's `README.txt` / `LEEME.txt`.
 
+## Releases
+
+Every push to `main` publishes a release automatically when the commits since the last tag call for it (Conventional Commits): `feat` → minor, `fix`/`perf` → patch, `type!:` or `BREAKING CHANGE` → major. `chore`, `docs`, `ci`, `test` and `refactor` don't publish. The workflow builds the `.dmg` and the Windows `.zip` and attaches them to the release. It can also be run by hand from the Actions tab.
+
 ## License
 
 MIT, see [`LICENSE`](LICENSE). Third-party components keep their own licenses (below).
