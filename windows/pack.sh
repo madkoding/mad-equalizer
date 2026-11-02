@@ -2,7 +2,7 @@
 # Arma la app de Windows x64: Electron oficial (verificado) + la app + icono.
 set -e
 cd "$(dirname "$0")"
-V=33.4.11
+V=42.11.16
 ZIP=.cache/electron-v$V-win32-x64.zip
 [[ -f $ZIP ]] || { echo "Falta $ZIP (descárgalo de las releases de Electron)"; exit 1; }
 OUT="dist/MAD Equalizer"
