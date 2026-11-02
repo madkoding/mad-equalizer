@@ -14,7 +14,7 @@ A vintage 16-band stereo graphic equalizer for **all** of your computer's audio,
 - Real-time spectrum analyzer on the fader LEDs, and the real summed response curve
 - VU meters with peak/OVER, LUFS (momentary, short-term, integrated), peak hold, crest factor, phase correlation and goniometer
 - Presets, 4 memories, A/B comparison, auto-gain and independent L/R editing
-- **50%** key (MODE row) to shrink the whole window to half size; the choice is remembered
+- Resizable window that keeps its proportions (minimum 60 % of the original size); on Windows the size is remembered
 - Low cut, high cut, loudness, bass/treble boost, de-esser and mono filters
 
 ## How it works

@@ -159,11 +159,6 @@ function makeKey(parent, title, onClick, help) {
   };
 }
 
-let halfSize = false;
-function toggleHalf() {
-  api.half(!halfSize).then((v) => { halfSize = v; keys.half.set(halfSize); });
-}
-
 const keys = {};
 function buildKeys() {
   const left = $('leftKeys');
@@ -182,7 +177,6 @@ function buildKeys() {
   keys.auto = makeKey(mode, 'AUTO GAIN', () => { S.autoGain = !S.autoGain; changed(); }, 'Compensa el volumen para comparar curvas a igual loudness');
   keys.clip = makeKey(mode, 'ANTI CLIP', () => { S.antiClip = !S.antiClip; changed(); }, 'Baja la ganancia lo justo para que la curva no sature');
   keys.curve = makeKey(mode, 'CURVE', () => { S.showCurve = !S.showCurve; changed(); });
-  keys.half = makeKey(mode, '50%', toggleHalf, 'Reducir toda la ventana a la mitad (50 %)');
   keys.scope = makeKey(mode, 'SCOPE', () => { S.scopeMode = !S.scopeMode; changed(); }, 'Goniómetro en lugar del VU derecho');
 }
 
@@ -543,8 +537,6 @@ function pushDemoEQ(stL, stR) {
 async function init() {
   await Promise.all([document.fonts.load('10px Michroma'), document.fonts.load('10px DSEG14')]);
   buildKeys();
-  halfSize = await api.half();
-  keys.half.set(halfSize);
   buildKnobs();
   buildFaders();
   $('power').addEventListener('click', () => setPower(!S.power));
