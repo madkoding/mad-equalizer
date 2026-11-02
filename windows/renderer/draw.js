@@ -80,7 +80,7 @@ export function drawVU(canvas, w, h, { position, channel, peak, over }) {
   ctx.fillText('MAD', face.x + face.w - 22, face.y + face.h - 11);
   ctx.globalAlpha = 1;
 
-  const [n1x, n1y] = pt(position, face.h * 0.3), [n2x, n2y] = pt(position, R + 12);
+  const [n1x, n1y] = pt(position, 0), [n2x, n2y] = pt(position, R + 12);
   ctx.save();
   ctx.shadowColor = 'rgba(0,0,0,0.35)'; ctx.shadowBlur = 3; ctx.shadowOffsetX = 2; ctx.shadowOffsetY = 2;
   ctx.beginPath(); ctx.moveTo(n1x, n1y); ctx.lineTo(n2x, n2y);
