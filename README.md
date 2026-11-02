@@ -65,6 +65,10 @@ xattr -dr com.apple.quarantine "/Applications/MAD Equalizer.app"
 
 On Windows, SmartScreen shows "Windows protected your PC": click **More info → Run anyway**. Details are in each platform's `README.txt` / `LEEME.txt`.
 
+## License
+
+MIT, see [`LICENSE`](LICENSE). Third-party components keep their own licenses (below).
+
 ## Third-party components
 
 - **Michroma** font, © The Michroma Project Authors, and **DSEG** font, © keshikan: SIL Open Font License 1.1 (`licenses/`).
@@ -79,5 +83,7 @@ On Windows, SmartScreen shows "Windows protected your PC": click **More info →
 
 - **macOS:** usa un *tap* de Core Audio (macOS 14.4 o posterior). No necesita drivers ni BlackHole, las teclas de volumen funcionan y, si la app se cierra, el audio vuelve a la normalidad solo.
 - **Windows:** es una interfaz para **Equalizer APO**, que hace el ecualizado en todo el sistema. El instalador lo incluye.
+
+El código se distribuye bajo licencia MIT (ver `LICENSE`).
 
 Para compilar, sigue los pasos de [Building](#building). Las instrucciones para usuarios finales, incluido el comando de cuarentena de macOS y cómo pasar SmartScreen en Windows, están en `macos/LEEME.txt` y `windows/installer/LEEME.txt`.

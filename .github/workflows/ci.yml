@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  macos:
+    name: Build macOS app
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build universal app
+        working-directory: macos
+        run: ./build.sh
+
+  windows:
+    name: Check Windows app
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: windows/package-lock.json
+      - name: Install dependencies
+        working-directory: windows
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+        run: npm ci
+      - name: Syntax check
+        working-directory: windows
+        run: |
+          for f in main.js preload.js tools-icon.js renderer/*.js; do
+            node --check "$f"
+          done
