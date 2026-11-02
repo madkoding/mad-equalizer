@@ -1,6 +1,6 @@
 #!/bin/zsh
 # Genera out/MAD-Equalizer-2.0-Windows.zip (instalador + README/LEEME) desde macOS o Linux.
-# Requiere: node, makensis (brew install makensis), .cache/electron-v33.4.11-win32-x64.zip y vendor/EqualizerAPO-x64-1.4.2.exe
+# Requiere: node, makensis (brew install makensis), .cache/electron-v42.11.16-win32-x64.zip y vendor/EqualizerAPO-x64-1.4.2.exe
 set -e
 cd "$(dirname "$0")"
 ./pack.sh

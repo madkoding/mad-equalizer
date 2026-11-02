@@ -15,6 +15,6 @@
     "resedit": "^2.0.3"
   },
   "allowScripts": {
-    "electron@33.4.11": true
+    "electron@42.11.16": true
   }
 }
