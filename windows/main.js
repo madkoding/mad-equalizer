@@ -8,13 +8,13 @@ const { execFile } = require('child_process');
 const { pathToFileURL } = require('url');
 
 const WIN = process.platform === 'win32';
+// --screenshot=<archivo.png>: abre la app en modo demo, elige un preset, guarda una captura y sale.
+// Sirve para generar las imágenes del README y de la página web desde CI.
+const SHOT = (process.argv.find(a => a.startsWith('--screenshot=')) || '').slice('--screenshot='.length);
 // Fuera de Windows (o con --demo) no hay Equalizer APO: la configuración va a una carpeta local
 // y el audio es una señal de prueba. Sirve para desarrollar y revisar la interfaz.
 const DEMO = !WIN || process.argv.includes('--demo') || !!SHOT;
 const WIDTH = 1120, HEIGHT = 802;
-// --screenshot=<archivo.png>: abre la app en modo demo, elige un preset, guarda una captura y sale.
-// Sirve para generar las imágenes del README y de la página web desde CI.
-const SHOT = (process.argv.find(a => a.startsWith('--screenshot=')) || '').slice('--screenshot='.length);
 const CONFIG_FILE = 'MAD.txt';
 const INCLUDE_LINE = `Include: ${CONFIG_FILE}`;
 
