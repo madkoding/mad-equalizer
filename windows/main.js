@@ -73,42 +73,45 @@ async function writeConfig(text) {
   }
 }
 
-// Tamaño reducido al 50 %: preferencia guardada en la carpeta de datos de la app.
+// Ventana redimensionable con la proporción fija: el contenido se escala con el zoom.
+// El tamaño mínimo es el 60 % del original; el máximo, lo que cabe en la pantalla (hasta 200 %).
+const MIN_ZOOM = 0.6;
 const prefsFile = () => path.join(app.getPath('userData'), 'prefs.json');
-function readHalf() {
-  try { return JSON.parse(fs.readFileSync(prefsFile(), 'utf8')).half === true; } catch { return false; }
+function readZoom() {
+  try {
+    const z = JSON.parse(fs.readFileSync(prefsFile(), 'utf8')).zoom;
+    return typeof z === 'number' && isFinite(z) ? z : null;
+  } catch { return null; }
 }
-function writeHalf(half) {
-  try { fs.writeFileSync(prefsFile(), JSON.stringify({ half })); } catch { /* sin preferencia guardada */ }
+function writeZoom(zoom) {
+  try { fs.writeFileSync(prefsFile(), JSON.stringify({ zoom })); } catch { /* sin preferencia guardada */ }
 }
 
 let mainWin = null;
-let halfSize = false;
 
 // Con escalado alto de Windows (125–150 %) la ventana podría no caber: se reduce entera.
 function fitZoom() {
   const area = screen.getPrimaryDisplay().workAreaSize;
-  return Math.min(1, (area.width - 24) / WIDTH, (area.height - 24) / HEIGHT);
+  return Math.min((area.width - 24) / WIDTH, (area.height - 24) / HEIGHT);
 }
-const currentZoom = () => fitZoom() * (halfSize ? 0.5 : 1);
+const maxZoom = () => Math.max(MIN_ZOOM, Math.min(2, fitZoom()));
+const clampZoom = (z) => Math.min(maxZoom(), Math.max(MIN_ZOOM, z));
+const startZoom = () => clampZoom(readZoom() ?? Math.min(1, fitZoom()));
 
-function applyZoom() {
-  const win = mainWin;
-  if (!win || win.isDestroyed()) return;
-  const zoom = currentZoom();
-  win.setContentSize(Math.round(WIDTH * zoom), Math.round(HEIGHT * zoom));
+function applyZoom(win, zoom) {
   win.webContents.setZoomFactor(zoom);
-  if (WIN) win.setTitleBarOverlay({ color: '#0a0b0d', symbolColor: '#c9ced6', height: Math.round(30 * zoom) });
+  if (WIN) win.setTitleBarOverlay({ color: '#0a0b0d', symbolColor: '#c9ced6', height: Math.max(1, Math.round(30 * zoom)) });
 }
 
 function createWindow() {
-  halfSize = readHalf();
-  const zoom = currentZoom();
+  const zoom = startZoom();
   const win = new BrowserWindow({
     width: Math.round(WIDTH * zoom),
     height: Math.round(HEIGHT * zoom),
     useContentSize: true,
-    resizable: false,
+    minWidth: Math.round(WIDTH * MIN_ZOOM),
+    minHeight: Math.round(HEIGHT * MIN_ZOOM),
+    resizable: true,
     maximizable: false,
     fullscreenable: false,
     title: 'MAD Equalizer',
@@ -127,7 +130,17 @@ function createWindow() {
   });
   win.setMenuBarVisibility(false);
   mainWin = win;
-  win.webContents.on('did-finish-load', () => win.webContents.setZoomFactor(currentZoom()));
+  win.setAspectRatio(WIDTH / HEIGHT);
+  win.setMaximumSize(Math.round(WIDTH * maxZoom()), Math.round(HEIGHT * maxZoom()));
+  win.webContents.on('did-finish-load', () => applyZoom(win, startZoom()));
+  // El contenido sigue al tamaño de la ventana; la preferencia se guarda al dejar de redimensionar.
+  let saveTimer = null;
+  win.on('resize', () => {
+    const zoom = clampZoom(win.getContentSize()[0] / WIDTH);
+    applyZoom(win, zoom);
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => writeZoom(zoom), 400);
+  });
   win.loadURL('app://mad/index.html');
   if (SHOT) takeScreenshot(win, SHOT);
 }
@@ -173,14 +186,6 @@ app.whenReady().then(() => {
     const exe = info.installPath && path.join(info.installPath, 'DeviceSelector.exe');
     if (exe && fs.existsSync(exe)) return shell.openPath(exe);
     return 'NO DISPONIBLE';
-  });
-  ipcMain.handle('window:half', (_e, half) => {
-    if (typeof half === 'boolean') {
-      halfSize = half;
-      writeHalf(half);
-      applyZoom();
-    }
-    return halfSize;
   });
   ipcMain.handle('sys:sound', () => (WIN ? shell.openExternal('ms-settings:sound') : null));
 

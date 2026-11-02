@@ -816,25 +816,6 @@ struct LEDKey: View {
     }
 }
 
-private struct HalfSizeKey_Binding: EnvironmentKey {
-    static let defaultValue: Binding<Bool> = .constant(false)
-}
-extension EnvironmentValues {
-    var halfSizeBinding: Binding<Bool> {
-        get { self[HalfSizeKey_Binding.self] }
-        set { self[HalfSizeKey_Binding.self] = newValue }
-    }
-}
-
-/// Reduce toda la ventana a la mitad (50 %) y la restaura.
-struct HalfSizeKey: View {
-    @Environment(\.halfSizeBinding) private var half
-    var body: some View {
-        LEDKey("50%", on: half.wrappedValue) { half.wrappedValue.toggle() }
-            .help("Reducir toda la ventana a la mitad (50 %)")
-    }
-}
-
 /// STORE parpadea mientras espera que elijas la memoria donde guardar.
 struct StoreKey: View {
     @ObservedObject var eq: EQModel
@@ -947,11 +928,37 @@ struct Screw: View {
 struct RootView: View {
     @StateObject private var eq = EQModel()
     @StateObject private var meters = MeterModel()
-    /// Reducir toda la ventana al 50 %; se recuerda entre sesiones.
-    @AppStorage("halfSize") private var halfSize = false
     static let size = CGSize(width: 1120, height: 772)
+    /// Franja superior de la ventana (zona de la barra de título oculta): lleva la serigrafía.
+    static let strip: CGFloat = 28
+    /// Lienzo completo de la ventana a escala 100 %.
+    static let canvas = CGSize(width: size.width, height: size.height + strip)
+    /// La ventana se puede redimensionar con la proporción fija; el mínimo es el 60 % del tamaño original.
+    static let minScale: CGFloat = 0.6
 
     var body: some View {
+        GeometryReader { geo in
+            let scale = min(geo.size.width / Self.canvas.width, geo.size.height / Self.canvas.height)
+            VStack(spacing: 0) {
+                Color.clear.frame(height: Self.strip)
+                faceplate
+            }
+            .overlay(alignment: .top) {
+                Silk("MAD EQUALIZER  ·  16 BAND STEREO GRAPHIC EQ  ·  SYSTEM AUDIO TAP", 10, opacity: 0.4).offset(y: 7)
+            }
+            .frame(width: Self.canvas.width, height: Self.canvas.height)
+            .scaleEffect(scale, anchor: .topLeading)
+            .frame(width: geo.size.width, height: geo.size.height, alignment: .topLeading)
+        }
+        .ignoresSafeArea()
+        .frame(minWidth: Self.canvas.width * Self.minScale, minHeight: Self.canvas.height * Self.minScale)
+        .background(WindowAspect(size: Self.canvas, minScale: Self.minScale))
+        .titlebarColor(Color(red: 0.04, green: 0.045, blue: 0.05))
+        .preferredColorScheme(.dark)
+        .onAppear { meters.attach(eq) }
+    }
+
+    private var faceplate: some View {
         ZStack(alignment: .top) {
             Faceplate()
             HStack(spacing: 0) {
@@ -974,17 +981,6 @@ struct RootView: View {
             LinearGradient(colors: [Color(white: 0.5), Color(white: 0.25), Color(white: 0.5)], startPoint: .leading, endPoint: .trailing)
                 .frame(height: 1)
         }
-        .overlay(alignment: .top) {
-            Silk("MAD EQUALIZER  ·  16 BAND STEREO GRAPHIC EQ  ·  SYSTEM AUDIO TAP", 10, opacity: 0.4).offset(y: -21)
-        }
-        .titlebarColor(Color(red: 0.04, green: 0.045, blue: 0.05))
-        .preferredColorScheme(.dark)
-        .onAppear { meters.attach(eq) }
-        .environment(\.halfSizeBinding, $halfSize)
-        .scaleEffect(halfSize ? 0.5 : 1, anchor: .topLeading)
-        .frame(width: Self.size.width * (halfSize ? 0.5 : 1),
-               height: Self.size.height * (halfSize ? 0.5 : 1),
-               alignment: .topLeading)
     }
 
     private var header: some View {
@@ -1082,7 +1078,6 @@ struct RootView: View {
                     LEDKey("AUTO GAIN", on: eq.autoGain) { eq.autoGain.toggle() }
                         .help("Compensa el volumen para comparar curvas a igual loudness")
                     LEDKey("CURVE", on: eq.showCurve) { eq.showCurve.toggle() }
-                    HalfSizeKey()
                     LEDKey("SCOPE", on: eq.scopeMode) { eq.scopeMode.toggle() }
                         .help("Goniómetro en lugar del VU derecho")
                     LEDKey("APPS", on: !eq.excludedApps.isEmpty) { eq.showApps.toggle() }
@@ -1128,6 +1123,26 @@ extension View {
     }
 }
 
+/// Fija la proporción de la ventana y su tamaño mínimo; el contenido se escala con ella.
+struct WindowAspect: NSViewRepresentable {
+    let size: CGSize
+    let minScale: CGFloat
+
+    func makeNSView(context: Context) -> NSView {
+        let v = NSView()
+        DispatchQueue.main.async { configure(v.window) }
+        return v
+    }
+    func updateNSView(_ v: NSView, context: Context) {
+        DispatchQueue.main.async { configure(v.window) }
+    }
+    private func configure(_ w: NSWindow?) {
+        guard let w else { return }
+        w.contentAspectRatio = size
+        w.contentMinSize = CGSize(width: size.width * minScale, height: size.height * minScale)
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     // Cerrar la ventana cierra la app: el tap desaparece y el audio vuelve a la normalidad.
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { true }
@@ -1139,6 +1154,7 @@ struct MADEqualizerApp: App {
     var body: some Scene {
         WindowGroup("MAD Equalizer") { RootView() }
             .windowStyle(.hiddenTitleBar)
-            .windowResizability(.contentSize)
+            .windowResizability(.contentMinSize)
+            .defaultSize(width: RootView.canvas.width, height: RootView.canvas.height)
     }
 }
