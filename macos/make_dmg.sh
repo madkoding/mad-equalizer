@@ -26,7 +26,7 @@ MNT=$(echo "$ATTACH" | awk -F'	' '$3 ~ /^\/Volumes\// {print $3}')
 echo "Montado en: $MNT"
 
 # Diseño de la ventana: fondo, iconos grandes, app a la izquierda y Aplicaciones a la derecha.
-osascript <<EOF || echo "Aviso: no se pudo aplicar el diseño de Finder (el DMG funciona igual)."
+perl -e 'alarm 90; exec @ARGV' osascript <<EOF || echo "Aviso: no se pudo aplicar el diseño de Finder (el DMG funciona igual)."
 tell application "Finder"
     tell disk "$VOL"
         open
