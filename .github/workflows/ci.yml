@@ -39,6 +39,14 @@ jobs:
           for f in main.js preload.js tools-icon.js renderer/*.js; do
             node --check "$f"
           done
+      - name: Use-before-define check
+        # Detecta errores que solo se ven en Windows (p. ej. una constante usada antes de declararse
+        # dentro de una condición que en Linux no se evalúa).
+        working-directory: windows
+        run: |
+          npx -y eslint@9.0.0 --no-config-lookup \
+            --rule '{"no-use-before-define":["error",{"functions":false,"classes":false}]}' \
+            main.js preload.js tools-icon.js
 
   windows-package:
     name: Package Windows app
