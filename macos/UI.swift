@@ -948,10 +948,11 @@ struct PlayerBar: View {
                 let timed = i?.timed == true
                 let total = timed ? i!.duration : 0
                 VStack(spacing: 6) {
-                    HStack(alignment: .firstTextBaseline) {
-                        SegText(i == nil ? "!!!!!" : timed ? mmss(pos) : "--:--", cells: 5, size: 13)
+                    // Transcurrido / total, alineado a la derecha (lejos de los controles).
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Spacer(minLength: 0)
-                        Text(total > 0 ? "-" + mmss(total - pos) : "--:--")
+                        SegText(i == nil ? "!!!!!" : timed ? mmss(pos) : "--:--", cells: 5, size: 13)
+                        Text("/ " + (total > 0 ? mmss(total) : "--:--"))
                             .font(.wide(10)).tracking(0.6).foregroundStyle(Palette.led.opacity(0.6))
                     }
                     SegBar(fraction: total > 0 ? pos / total : 0)
@@ -960,12 +961,14 @@ struct PlayerBar: View {
             .frame(maxWidth: .infinity)
             .opacity(i == nil ? 0.35 : 1)
 
-            HStack(spacing: 8) {
-                Image(systemName: "speaker.wave.2.fill").font(.system(size: 11)).foregroundStyle(Palette.led.opacity(0.8))
-                SegBar(fraction: i?.volume ?? 0)
+            // El volumen sólo existe para Spotify y Música; sin él, el tiempo llega hasta el borde.
+            if let volume = i?.volume {
+                HStack(spacing: 8) {
+                    Image(systemName: "speaker.wave.2.fill").font(.system(size: 11)).foregroundStyle(Palette.led.opacity(0.8))
+                    SegBar(fraction: volume)
+                }
+                .frame(width: 118)
             }
-            .frame(width: 118)
-            .opacity(i?.volume == nil ? 0 : 1)
         }
         .padding(.horizontal, 16)
         .frame(height: 70)
