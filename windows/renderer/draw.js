@@ -5,7 +5,7 @@ export const C = {
   led: 'rgb(77,179,255)', ledCore: 'rgb(199,235,255)', ledOff: 'rgb(15,28,48)',
   silk: 'rgb(209,217,227)', ink: 'rgb(10,26,51)', red: 'rgb(199,31,26)', redOff: 'rgb(51,10,10)',
 };
-export const wide = (size) => `900 ${size * 0.64 * 0.99}px MADMicrogramma`;
+export const wide = (size) => `900 ${size * 0.64 * 0.89}px MADMicrogramma`;
 const rad = (d) => d * Math.PI / 180;
 
 /** Ajusta el canvas a la densidad de píxeles y devuelve un contexto en px CSS. */

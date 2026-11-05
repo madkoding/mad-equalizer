@@ -19,7 +19,7 @@ html, body { margin: 0; width: 1120px; height: 690px; overflow: hidden; backgrou
   text-rendering: geometricPrecision; -webkit-font-smoothing: antialiased; }
 button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: default; }
 .grow { flex: 1; }
-.silk { font-size: 6.1px; letter-spacing: 0.5px; color: rgba(209,217,227,0.8); }
+.silk { font-size: 5.5px; letter-spacing: 0.5px; color: rgba(209,217,227,0.8); }
 
 /* Barra superior: arrastra la ventana; en Windows los botones nativos se dibujan encima, a la derecha */
 #top { height: 30px; display: flex; align-items: center; justify-content: center; -webkit-app-region: drag;
@@ -48,9 +48,9 @@ header { display: flex; gap: 18px; align-items: flex-start; }
 canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0 14px rgba(77,179,255,0.3), 0 0 36px rgba(77,179,255,0.16); flex: none; }
 .center { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .brand { display: flex; align-items: baseline; gap: 5px; }
-.brand .logo { font-size: 11.1px; letter-spacing: 1px; color: var(--silk); }
-.brand .sub { font-size: 5.6px; letter-spacing: 0.6px; color: var(--silk); } /* la mitad que MAD */
-.brand .bands { font-size: 7.4px; letter-spacing: 2px; color: rgba(77,179,255,0.8); }
+.brand .logo { font-size: 10.0px; letter-spacing: 1px; color: var(--silk); }
+.brand .sub { font-size: 5.0px; letter-spacing: 0.6px; color: var(--silk); } /* la mitad que MAD */
+.brand .bands { font-size: 6.7px; letter-spacing: 2px; color: rgba(77,179,255,0.8); }
 
 .display { position: relative; padding: 11px 14px; border-radius: 8px; display: flex; flex-direction: column; gap: 9px;
   background: linear-gradient(180deg, rgb(4,8,14), rgb(8,17,28));
@@ -61,7 +61,7 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 .display .r2 { gap: 12px; }
 .display .r3 { align-items: center; gap: 5px; }
 .field { display: flex; flex-direction: column; gap: 4px; text-align: left; }
-.field label { font-size: 5.5px; letter-spacing: 0.8px; color: rgba(77,179,255,0.6); }
+.field label { font-size: 5.0px; letter-spacing: 0.8px; color: rgba(77,179,255,0.6); }
 .field.link:hover label { color: var(--led-core); }
 
 /* Display de 14 segmentos: celdas "fantasma" apagadas detrás del texto encendido */
@@ -73,13 +73,13 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 
 .bars { display: flex; flex-direction: column; gap: 8px; padding-top: 3px; }
 .bar { display: flex; align-items: center; gap: 6px; }
-.bar label { width: 34px; font-size: 5.5px; color: rgba(77,179,255,0.6); }
+.bar label { width: 34px; font-size: 5.0px; color: rgba(77,179,255,0.6); }
 .bar canvas { width: 118px; height: 7px; }
 
-.lamp { font-size: 6.1px; letter-spacing: 0.6px; padding: 0 8px; height: 16px; line-height: 16px; border-radius: 8px;
+.lamp { font-size: 5.5px; letter-spacing: 0.6px; padding: 0 8px; height: 16px; line-height: 16px; border-radius: 8px;
   color: rgba(77,179,255,0.35); background: var(--led-off); white-space: nowrap; }
 .lamp.on { color: rgba(0,0,0,0.85); background: var(--led); box-shadow: var(--bloom-box); }
-.status { text-shadow: 0 0 6px rgba(77,179,255,0.55); font-size: 6.1px; letter-spacing: 0.5px; color: rgba(77,179,255,0.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.status { text-shadow: 0 0 6px rgba(77,179,255,0.55); font-size: 5.5px; letter-spacing: 0.5px; color: rgba(77,179,255,0.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Faders */
 .well { border-radius: 10px; background: rgb(8,9,12); padding: 0 0 4px;
@@ -103,11 +103,11 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 .rows { display: flex; flex-direction: column; gap: 6px; }
 .rows .row { display: flex; gap: 3px; align-items: flex-start; }
 .pill { width: 66px; height: 18px; margin-top: 5px; padding: 0 3px 0 9px; text-align: center; line-height: 18px; white-space: nowrap;
-  font-size: 6.1px; letter-spacing: 0.5px; color: rgba(0,0,0,0.85);
+  font-size: 5.5px; letter-spacing: 0.5px; color: rgba(0,0,0,0.85);
   background: rgba(77,179,255,0.85); border-radius: 9px 0 0 9px; }
 
 .key { display: flex; flex-direction: column; align-items: center; }
-.key button { position: relative; width: 68px; height: 28px; padding-top: 3px; border-radius: 3px; font-size: 5.9px; letter-spacing: 0.2px; white-space: nowrap;
+.key button { position: relative; width: 68px; height: 28px; padding-top: 3px; border-radius: 3px; font-size: 5.3px; letter-spacing: 0.2px; white-space: nowrap;
   color: rgba(209,217,227,0.9);
   background: linear-gradient(180deg, rgb(64,64,64), rgb(28,28,28));
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.9), inset 0 2px 0 -1px rgba(255,255,255,0.13), 0 2px 3px rgba(0,0,0,0.65); }
@@ -125,7 +125,7 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 .knobs .knob { width: 56px; }
 .knob { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .knob canvas { width: 54px; height: 54px; }
-.knob .silk { font-size: 5.5px; letter-spacing: 0.2px; }
+.knob .silk { font-size: 5.0px; letter-spacing: 0.2px; }
 
 /* Reproductor: aparece abajo cuando se detecta una app de música */
 .player { display: flex; align-items: center; gap: 16px; height: 70px; padding: 0 16px; border-radius: 10px;
@@ -138,9 +138,9 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
   background: radial-gradient(circle at 30% 25%, rgb(32,78,128), rgb(10,24,44) 70%); box-shadow: 0 0 0 1.5px #000, 0 0 10px rgba(77,179,255,0.35), 0 0 28px rgba(77,179,255,0.2); }
 .player .art svg { width: 24px; height: 24px; filter: drop-shadow(0 0 3px var(--led)) drop-shadow(0 0 9px rgba(77,179,255,0.6)); }
 .player .tags { text-transform: uppercase; width: 270px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.player .t-title { font-size: 9.2px; letter-spacing: 0.4px; color: var(--led-core); text-shadow: var(--bloom-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.player .t-artist { font-size: 7.1px; letter-spacing: 0.6px; color: var(--silk); white-space: nowrap; }
-.player .t-album { font-size: 6.0px; letter-spacing: 0.5px; color: rgba(77,179,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player .t-title { font-size: 8.3px; letter-spacing: 0.4px; color: var(--led-core); text-shadow: var(--bloom-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player .t-artist { font-size: 6.4px; letter-spacing: 0.6px; color: var(--silk); white-space: nowrap; }
+.player .t-album { font-size: 5.4px; letter-spacing: 0.5px; color: rgba(77,179,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .transport { display: flex; align-items: center; gap: 8px; }
 .tbtn { width: 38px; height: 28px; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: rgba(209,217,227,0.9);
   background: linear-gradient(180deg, rgb(64,64,64), rgb(28,28,28));
@@ -150,8 +150,8 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 .tbtn.big svg { width: 18px; height: 18px; filter: drop-shadow(0 0 3px var(--led)) drop-shadow(0 0 9px rgba(77,179,255,0.6)); }
 .progress { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .times { display: flex; justify-content: space-between; align-items: baseline; }
-.seg.tm { font-size: 14.9px; color: var(--led-core); text-shadow: var(--bloom-text); }
-.dur { font-size: 6.1px; color: rgba(77,179,255,0.6); letter-spacing: 0.6px; }
+.seg.tm { font-size: 13.4px; color: var(--led-core); text-shadow: var(--bloom-text); }
+.dur { font-size: 5.5px; color: rgba(77,179,255,0.6); letter-spacing: 0.6px; }
 .pbar, .vbar { height: 7px; border-radius: 2px; background: var(--led-off); position: relative; overflow: hidden;
   -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 7px); }
 .pbar i, .vbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--led); box-shadow: 0 0 6px var(--led), 0 0 16px rgba(77,179,255,0.55), 0 0 32px rgba(77,179,255,0.25); }
@@ -160,5 +160,5 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 .vol .vbar { flex: 1; }
 .player .vol.hidden { visibility: hidden; }
 .player.empty .art, .player.empty .tags, .player.empty .transport, .player.empty .progress, .player.empty .vol { opacity: 0.35; }
-.player .hint { font-size: 6.8px; letter-spacing: 0.6px; color: rgba(77,179,255,0.7); }
+.player .hint { font-size: 6.1px; letter-spacing: 0.6px; color: rgba(77,179,255,0.7); }
 

@@ -19,7 +19,7 @@ extension Font {
     /// MAD Microgramma Black (derivada de Michroma, SIL OFL): extendida y pesada al estilo Microgramma Bold Extended.
     /// Es mucho más ancha que una
     /// fuente normal, así que los tamaños se escalan para conservar la composición.
-    static func wide(_ size: CGFloat) -> Font { .custom("MADMicrogramma-Black", size: size * 0.64 * 0.99) }
+    static func wide(_ size: CGFloat) -> Font { .custom("MADMicrogramma-Black", size: size * 0.64 * 0.89) }
     /// DSEG14 Classic Italic: display de 14 segmentos.
     static func seg(_ size: CGFloat) -> Font { .custom("DSEG14Classic-Italic", size: size) }
 }
