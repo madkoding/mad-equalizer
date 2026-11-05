@@ -6,20 +6,22 @@ Unicode true
 !include "x64.nsh"
 
 !define APPNAME "MAD Equalizer"
-!define VERSION "2.0.0"
+!ifndef VERSION
+  !define VERSION "0.0.0"
+!endif
 !define EAPO "EqualizerAPO-x64-1.4.2.exe"
 !define UNINSTKEY "Software\Microsoft\Windows\CurrentVersion\Uninstall\MADEqualizer"
 !define BACKUP "config.before-MAD.txt"
 
 Name "${APPNAME}"
-OutFile "../out/MAD-Equalizer-2.0-Setup.exe"
+OutFile "../out/MAD-Equalizer-${VERSION}-Setup.exe"
 InstallDir "$PROGRAMFILES64\${APPNAME}"
 InstallDirRegKey HKLM "Software\MADEqualizer" "InstallDir"
 RequestExecutionLevel admin
 SetCompressor /SOLID lzma
 BrandingText "MAD Equalizer ${VERSION}"
 
-VIProductVersion "2.0.0.0"
+VIProductVersion "${VERSION}.0"
 VIAddVersionKey /LANG=1033 "ProductName" "${APPNAME}"
 VIAddVersionKey /LANG=1033 "FileDescription" "${APPNAME} Setup"
 VIAddVersionKey /LANG=1033 "FileVersion" "${VERSION}"

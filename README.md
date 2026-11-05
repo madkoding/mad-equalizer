@@ -38,7 +38,7 @@ Requires macOS 14.4+ and the Xcode command line tools (`xcode-select --install`)
 ```bash
 cd macos
 ./build.sh       # → MAD Equalizer.app (universal)
-./make_dmg.sh    # → MAD-Equalizer-2.0.dmg
+./make_dmg.sh    # → MAD-Equalizer-<version>.dmg
 ```
 
 `tools/Artwork.swift` regenerates the icon and the DMG background (`art/`).
@@ -56,7 +56,7 @@ mkdir -p .cache && curl -L -o .cache/electron-v42.11.16-win32-x64.zip \
 # Official Equalizer APO installer (bundled into the setup)
 mkdir -p vendor && curl -L -o vendor/EqualizerAPO-x64-1.4.2.exe \
   https://sourceforge.net/projects/equalizerapo/files/1.4.2/EqualizerAPO-x64-1.4.2.exe/download
-./build.sh       # → out/MAD-Equalizer-2.0-Windows.zip (setup + README/LEEME)
+./build.sh       # → out/MAD-Equalizer-<version>-Windows.zip (setup + README/LEEME)
 ```
 
 `npm run demo` runs the UI in **demo mode** on any OS (test signal, configuration written to a local folder), handy for working on the interface without Windows.

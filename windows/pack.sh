@@ -2,6 +2,10 @@
 # Arma la app de Windows x64: Electron oficial (verificado) + la app + icono.
 set -e
 cd "$(dirname "$0")"
+# Versión: la da el workflow de release (VERSION=1.2.3, sin "v"); en local sale del último tag.
+VERSION="${VERSION:-$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')}"
+VERSION="${VERSION:-0.0.0}"
+export VERSION
 V=42.11.16
 ZIP=.cache/electron-v$V-win32-x64.zip
 [[ -f $ZIP ]] || { echo "Falta $ZIP (descárgalo de las releases de Electron)"; exit 1; }

@@ -1,4 +1,4 @@
-MAD EQUALIZER 2.0
+MAD EQUALIZER @VERSION@
 Ecualizador gráfico estéreo de 16 bandas para todo el audio del Mac
 =====================================================================
 

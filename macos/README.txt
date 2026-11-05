@@ -1,4 +1,4 @@
-MAD EQUALIZER 2.0
+MAD EQUALIZER @VERSION@
 16-band stereo graphic equalizer for all of your Mac's audio
 =====================================================================
 
