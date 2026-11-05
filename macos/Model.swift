@@ -573,31 +573,64 @@ struct MediaInfo: Equatable {
     var stamp = Date()
     /// Bundle ID de la app (para elegir cómo controlarla).
     var bundle = ""
+    /// `false` si la fuente no da la posición (sólo se sabe qué suena): la interfaz muestra "--:--".
+    var timed = true
 }
 
 enum MediaCommand { case previous, toggle, next }
 
-/// Reproductor detectado (o ninguno).
+/// Reproductor de música activo (o ninguno).
+///
+/// Sólo cuentan los reproductores: apps conocidas (Spotify, Música, TIDAL, Deezer, VLC…) o las que
+/// declaran la categoría "Música" en su Info.plist. Navegadores, videollamadas, juegos o sonidos del
+/// sistema no aparecen aunque tengan audio.
 ///
 /// Fuentes, de más a menos completa:
-/// 1. Notificaciones distribuidas de Spotify y Música (título, artista, álbum, posición; sin permisos).
-/// 2. MediaRemote (privado, carga dinámica); en macOS 15.4+ sólo responde para apps de Apple.
-/// 3. Apps con audio de salida activo (Core Audio): al menos se muestra cuál suena (p. ej. TIDAL).
+/// 1. AppleScript de Spotify y Música: canción, posición exacta, duración y volumen.
+/// 2. MediaRemote (lo que macOS muestra en el Centro de control). Desde macOS 15.4 sólo responde a
+///    procesos de Apple, así que se lee a través de /usr/bin/perl (ver MediaRemoteHelper.m); si ese
+///    puente no funciona se consulta directamente, lo que sirve en versiones anteriores.
+/// 3. Notificaciones distribuidas de Spotify y Música (sin permisos).
+/// 4. Reproductores con audio de salida activo (Core Audio), con el título deducido de su ventana.
+///
+/// Si suenan varios se mantiene el que ya se mostraba; si ninguno suena, queda el último en pausa
+/// mientras siga abierto.
 ///
 /// `MAD_DEMO_PLAYER=1` muestra una pista de ejemplo.
 @MainActor
 final class NowPlaying: ObservableObject {
     @Published private(set) var info: MediaInfo?
 
-    private var rich: MediaInfo?       // notificaciones de Spotify / Música
-    private var remote: MediaInfo?     // MediaRemote
+    private var scripted: [String: MediaInfo] = [:]  // AppleScript, por bundle
+    private var rich: [String: MediaInfo] = [:]      // notificaciones, por bundle
+    private var remote: MediaInfo?                   // MediaRemote
+    private var heard: MediaInfo?                    // último reproductor detectado por su audio
+    private var scripts: [String: NSAppleScript] = [:]
+    private var denied: Set<String> = []             // apps sin permiso de Automatización
+    private var playerCache: [String: Bool] = [:]
     private var timer: Timer?
     private var askedAccessibility = false
     private var observers: [NSObjectProtocol] = []
     private let demo = ProcessInfo.processInfo.environment["MAD_DEMO_PLAYER"] != nil
 
+    private var helper: Process?
+    private var helperBuffer = Data()
+    private var helperFailures = 0
+    private var helperAlive = false
+
     private static let spotify = "com.spotify.client"
     private static let music = "com.apple.Music"
+
+    /// Reproductores conocidos (además de los que se declaran de la categoría Música).
+    private static let knownPlayers: Set<String> = [
+        spotify, music, "com.apple.podcasts", "com.tidal.desktop", "com.deezer.deezer-desktop",
+        "com.amazon.music", "com.qobuz.QobuzDesktop", "org.videolan.vlc", "com.coppertino.Vox",
+        "com.swinsian.Swinsian", "co.brushedtype.doppler-macos", "tv.plex.plexamp", "com.roon.Roon",
+        "com.audirvana.Audirvana-Studio", "com.audirvana.Audirvana", "sh.cider.genten.mac",
+        "sh.cider.electron", "com.github.th-ch.youtube-music", "app.ytmdesktop.ytmdesktop",
+        "com.foobar2000.mac", "com.pandora.desktop", "com.soundcloud.desktop",
+        "com.netease.163music", "com.tencent.QQMusicMac",
+    ]
 
     init() {
         if demo {
@@ -610,6 +643,7 @@ final class NowPlaying: ObservableObject {
         observe(dnc, "com.spotify.client.PlaybackStateChanged", app: "Spotify", bundle: Self.spotify)
         observe(dnc, "com.apple.Music.playerInfo", app: "Música", bundle: Self.music)
         observe(dnc, "com.apple.iTunes.playerInfo", app: "Música", bundle: Self.music)
+        startHelper()
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
         }
@@ -618,49 +652,26 @@ final class NowPlaying: ObservableObject {
 
     deinit {
         timer?.invalidate()
+        helper?.terminate()
         for o in observers { DistributedNotificationCenter.default().removeObserver(o) }
     }
 
-    // MARK: Fuentes
+    // MARK: Qué es un reproductor
 
-    private func observe(_ dnc: DistributedNotificationCenter, _ name: String, app: String, bundle: String) {
-        let o = dnc.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] n in
-            let u = n.userInfo ?? [:]
-            func num(_ k: String) -> Double? { (u[k] as? NSNumber)?.doubleValue }
-            let state = (u["Player State"] as? String ?? "").lowercased()
-            // Spotify da la duración en ms; Música, en "Total Time" (ms).
-            let dur = (num("Duration") ?? num("Total Time") ?? 0) / 1000
-            let i = MediaInfo(app: app,
-                              title: u["Name"] as? String ?? "",
-                              artist: u["Artist"] as? String ?? "",
-                              album: u["Album"] as? String ?? "",
-                              position: num("Playback Position") ?? 0,
-                              duration: dur,
-                              playing: state == "playing",
-                              volume: nil, bundle: bundle)
-            let stopped = state == "stopped"
-            Task { @MainActor in
-                self?.rich = stopped ? nil : i
-                self?.refresh()
-            }
+    private func isPlayer(_ bundle: String) -> Bool {
+        guard !bundle.isEmpty, bundle != Bundle.main.bundleIdentifier else { return false }
+        if let known = playerCache[bundle] { return known }
+        var ok = Self.knownPlayers.contains(bundle)
+        if !ok, let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundle),
+           let category = Bundle(url: url)?.object(forInfoDictionaryKey: "LSApplicationCategoryType") as? String {
+            ok = category == "public.app-category.music"
         }
-        observers.append(o)
-    }
-
-    private func refresh() {
-        queryRemote()
-        recompute()
+        playerCache[bundle] = ok
+        return ok
     }
 
     private func running(_ bundle: String) -> Bool {
         !NSRunningApplication.runningApplications(withBundleIdentifier: bundle).isEmpty
-    }
-
-    private func recompute() {
-        if let r = rich, running(r.bundle), !r.title.isEmpty { info = r; return }
-        rich = nil
-        if let m = remote, m.playing || m.duration > 0 { info = m; return }
-        info = audioSource()
     }
 
     /// App regular a la que pertenece un proceso de audio. Las apps Electron (Tidal, Spotify…) y los
@@ -676,6 +687,134 @@ final class NowPlaying: ObservableObject {
         }
         return nil
     }
+
+    private func runningApp(pid: pid_t) -> NSRunningApplication? {
+        guard pid > 0, let a = NSRunningApplication(processIdentifier: pid) else { return nil }
+        if a.activationPolicy == .regular { return a }
+        return a.bundleIdentifier.flatMap(owner(of:)) ?? a
+    }
+
+    // MARK: Elección
+
+    private func refresh() {
+        pollScripts()
+        if !helperAlive { queryRemote() }
+        recompute()
+    }
+
+    private func recompute() {
+        rich = rich.filter { running($0.key) }
+        var list: [MediaInfo] = []
+        for b in [Self.spotify, Self.music] {
+            if let s = scripted[b] { list.append(s) } else if let r = rich[b] { list.append(r) }
+        }
+        if let m = remote, !list.contains(where: { $0.bundle == m.bundle }) { list.append(m) }
+
+        if !list.contains(where: \.playing) {
+            // Ninguna fuente con metadatos dice que suene algo: se mira qué reproductor tiene audio.
+            if let a = audioSource(excluding: Set(list.map(\.bundle))) { heard = a }
+            else if var h = heard, running(h.bundle) { h.playing = false; heard = h }
+            else { heard = nil }
+            if let h = heard, !list.contains(where: { $0.bundle == h.bundle }) { list.append(h) }
+        } else {
+            heard = nil
+        }
+
+        let current = info?.bundle
+        let pick = list.first { $0.playing && $0.bundle == current }
+            ?? list.first { $0.playing }
+            ?? list.first { $0.bundle == current }
+            ?? list.first
+        if pick != info { info = pick }
+    }
+
+    // MARK: AppleScript (Spotify y Música)
+
+    private static let scriptSources: [String: String] = [
+        spotify: """
+        if application "Spotify" is running then
+          with timeout of 2 seconds
+            tell application "Spotify"
+              set s to player state as string
+              if s is "stopped" then return {s}
+              set t to current track
+              return {s, name of t, artist of t, album of t, (duration of t) / 1000, player position, sound volume}
+            end tell
+          end timeout
+        end if
+        return {"stopped"}
+        """,
+        music: """
+        if application "Music" is running then
+          with timeout of 2 seconds
+            tell application "Music"
+              set s to player state as string
+              if s is "stopped" then return {s}
+              set t to current track
+              return {s, name of t, artist of t, album of t, duration of t, player position, sound volume}
+            end tell
+          end timeout
+        end if
+        return {"stopped"}
+        """,
+    ]
+
+    /// Sólo se consulta una app si está abierta (si no, AppleScript la abriría) y si no se ha negado
+    /// el permiso de Automatización.
+    private func pollScripts() {
+        for (bundle, source) in Self.scriptSources {
+            guard !denied.contains(bundle), running(bundle) else { scripted[bundle] = nil; continue }
+            let script = scripts[bundle] ?? NSAppleScript(source: source)
+            scripts[bundle] = script
+            var err: NSDictionary?
+            guard let r = script?.executeAndReturnError(&err), err == nil else {
+                if (err?[NSAppleScript.errorNumber] as? Int) == -1743 { denied.insert(bundle) }
+                scripted[bundle] = nil
+                continue
+            }
+            scripted[bundle] = scriptInfo(r, bundle: bundle)
+        }
+    }
+
+    private func scriptInfo(_ r: NSAppleEventDescriptor, bundle: String) -> MediaInfo? {
+        guard r.numberOfItems >= 7, let state = r.atIndex(1)?.stringValue, state != "stopped" else { return nil }
+        func s(_ k: Int) -> String { r.atIndex(k)?.stringValue ?? "" }
+        func n(_ k: Int) -> Double { r.atIndex(k)?.doubleValue ?? 0 }
+        let title = s(2)
+        guard !title.isEmpty else { return nil }
+        return MediaInfo(app: bundle == Self.spotify ? "Spotify" : "Música", title: title,
+                         artist: s(3), album: s(4), position: n(6), duration: n(5),
+                         playing: state == "playing", volume: min(1, max(0, n(7) / 100)), bundle: bundle)
+    }
+
+    // MARK: Notificaciones (Spotify y Música)
+
+    private func observe(_ dnc: DistributedNotificationCenter, _ name: String, app: String, bundle: String) {
+        let o = dnc.addObserver(forName: Notification.Name(name), object: nil, queue: .main) { [weak self] n in
+            let u = n.userInfo ?? [:]
+            func num(_ k: String) -> Double? { (u[k] as? NSNumber)?.doubleValue }
+            let state = (u["Player State"] as? String ?? "").lowercased()
+            let title = u["Name"] as? String ?? ""
+            // Spotify da la duración en ms ("Duration"); Música, en "Total Time" (ms) y sin posición.
+            let i = MediaInfo(app: app, title: title,
+                              artist: u["Artist"] as? String ?? "",
+                              album: u["Album"] as? String ?? "",
+                              position: num("Playback Position") ?? 0,
+                              duration: (num("Duration") ?? num("Total Time") ?? 0) / 1000,
+                              playing: state == "playing",
+                              volume: nil, bundle: bundle,
+                              timed: num("Playback Position") != nil)
+            let keep = state != "stopped" && !title.isEmpty
+            Task { @MainActor in
+                guard let self else { return }
+                self.rich[bundle] = keep ? i : nil
+                self.refresh()
+            }
+        }
+        observers.append(o)
+    }
+
+    // MARK: Audio de salida (último recurso)
 
     /// Título de la ventana de la app ("Canción - Artista"). Se prueba primero con Accesibilidad
     /// (permiso más acotado) y, si ya está concedido, con la lista de ventanas (Grabación de pantalla).
@@ -712,12 +851,12 @@ final class NowPlaying: ObservableObject {
         return nil
     }
 
-    /// App con salida de audio activa; con metadatos sólo si se pueden deducir de su ventana.
-    private func audioSource() -> MediaInfo? {
-        let own = Bundle.main.bundleIdentifier
-        for p in audioProcesses() where p.isOutputting && p.bundleID != own {
-            guard let app = owner(of: p.bundleID), let name = app.localizedName,
-                  app.bundleIdentifier != own else { continue }
+    /// Reproductor con salida de audio activa; con canción sólo si se puede deducir de su ventana.
+    /// No se conoce la posición, así que la interfaz no inventa un tiempo.
+    private func audioSource(excluding skip: Set<String>) -> MediaInfo? {
+        for p in audioProcesses() where p.isOutputting {
+            guard let app = owner(of: p.bundleID), let bundle = app.bundleIdentifier,
+                  !skip.contains(bundle), isPlayer(bundle), let name = app.localizedName else { continue }
             var title = "Reproduciendo", artist = ""
             if let t = windowTitle(pid: app.processIdentifier),
                let r = t.range(of: " - ", options: .backwards) {
@@ -725,13 +864,95 @@ final class NowPlaying: ObservableObject {
             }
             return MediaInfo(app: name, title: title, artist: artist, album: "",
                              position: 0, duration: 0, playing: true, volume: nil,
-                             bundle: app.bundleIdentifier ?? p.bundleID)
+                             bundle: bundle, timed: false)
         }
         return nil
     }
 
-    // MARK: MediaRemote (best-effort)
+    // MARK: MediaRemote
 
+    private static let perl = URL(fileURLWithPath: "/usr/bin/perl")
+    private static let perlLoader = """
+    use DynaLoader;
+    my $h = DynaLoader::dl_load_file($ARGV[0], 0) or exit 4;
+    my $s = DynaLoader::dl_find_symbol($h, "mad_mediaremote") or exit 5;
+    DynaLoader::dl_install_xsub("main::mad_mediaremote", $s);
+    mad_mediaremote();
+    """
+
+    private static var helperLibrary: URL? {
+        guard let url = Bundle.main.privateFrameworksURL?.appendingPathComponent("MADMediaRemote.dylib"),
+              FileManager.default.fileExists(atPath: url.path) else { return nil }
+        return url
+    }
+
+    private static func perlProcess(_ lib: URL) -> Process {
+        let p = Process()
+        p.executableURL = perl
+        p.arguments = ["-e", perlLoader, lib.path]
+        p.standardInput = FileHandle.nullDevice
+        p.standardError = FileHandle.nullDevice
+        return p
+    }
+
+    /// Lanza el puente (una línea JSON por segundo). Si se cae, se reintenta unas cuantas veces.
+    private func startHelper() {
+        guard helper == nil, helperFailures < 5, let lib = Self.helperLibrary else { return }
+        let p = Self.perlProcess(lib)
+        let out = Pipe()
+        p.standardOutput = out
+        out.fileHandleForReading.readabilityHandler = { [weak self] h in
+            let data = h.availableData
+            if data.isEmpty { h.readabilityHandler = nil; return }
+            Task { @MainActor in self?.helperData(data) }
+        }
+        p.terminationHandler = { [weak self] _ in
+            Task { @MainActor in self?.helperExited() }
+        }
+        do { try p.run(); helper = p } catch { helperFailures += 1 }
+    }
+
+    private func helperExited() {
+        helper = nil
+        helperAlive = false
+        helperBuffer.removeAll()
+        helperFailures += 1
+        DispatchQueue.main.asyncAfter(deadline: .now() + Double(3 * helperFailures)) { [weak self] in
+            Task { @MainActor in self?.startHelper() }
+        }
+    }
+
+    private func helperData(_ data: Data) {
+        helperBuffer.append(data)
+        while let nl = helperBuffer.firstIndex(of: 0x0A) {
+            let line = Data(helperBuffer[helperBuffer.startIndex..<nl])
+            helperBuffer.removeSubrange(helperBuffer.startIndex...nl)
+            helperAlive = true
+            helperFailures = 0
+            let obj = try? JSONSerialization.jsonObject(with: line, options: [.fragmentsAllowed])
+            remote = (obj as? [String: Any]).flatMap(remoteInfo)
+            recompute()
+        }
+    }
+
+    /// Convierte lo leído de MediaRemote; descarta lo que no venga de un reproductor.
+    private func remoteInfo(_ d: [String: Any]) -> MediaInfo? {
+        func num(_ k: String) -> Double { (d[k] as? NSNumber)?.doubleValue ?? 0 }
+        let title = d["title"] as? String ?? ""
+        guard !title.isEmpty, let app = runningApp(pid: pid_t(num("pid"))),
+              let bundle = app.bundleIdentifier, isPlayer(bundle) else { return nil }
+        var i = MediaInfo(app: app.localizedName ?? "Reproductor", title: title,
+                          artist: d["artist"] as? String ?? "", album: d["album"] as? String ?? "",
+                          position: num("elapsed"), duration: num("duration"),
+                          playing: (d["playing"] as? Bool ?? false) || num("rate") > 0,
+                          volume: nil, bundle: bundle)
+        // La posición corresponde al instante en que el reproductor la informó, no al de la lectura.
+        let ts = num("timestamp")
+        if ts > 0 { i.stamp = Date(timeIntervalSince1970: ts) }
+        return i
+    }
+
+    // Consulta directa (sirve hasta macOS 15.3, o si el puente no arranca).
     private typealias InfoFn = @convention(c) (DispatchQueue, @escaping @convention(block) (CFDictionary?) -> Void) -> Void
     private typealias PidFn = @convention(c) (DispatchQueue, @escaping @convention(block) (Int32) -> Void) -> Void
 
@@ -746,25 +967,43 @@ final class NowPlaying: ObservableObject {
         guard let mr = Self.mediaRemote else { return }
         mr.pid(.main) { [weak self] pid in
             mr.info(.main) { dict in
-                let d = (dict as NSDictionary?) as? [String: Any]
-                let title = d?["kMRMediaRemoteNowPlayingInfoTitle"] as? String ?? ""
-                let artist = d?["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? ""
-                let album = d?["kMRMediaRemoteNowPlayingInfoAlbum"] as? String ?? ""
-                let dur = (d?["kMRMediaRemoteNowPlayingInfoDuration"] as? NSNumber)?.doubleValue ?? 0
-                let pos = (d?["kMRMediaRemoteNowPlayingInfoElapsedTime"] as? NSNumber)?.doubleValue ?? 0
-                let rate = (d?["kMRMediaRemoteNowPlayingInfoPlaybackRate"] as? NSNumber)?.doubleValue ?? 0
+                let d = (dict as NSDictionary?) as? [String: Any] ?? [:]
+                func n(_ k: String) -> NSNumber { d[k] as? NSNumber ?? NSNumber(value: 0) }
+                let ts = (d["kMRMediaRemoteNowPlayingInfoTimestamp"] as? Date)?.timeIntervalSince1970 ?? 0
+                let flat: [String: Any] = [
+                    "pid": NSNumber(value: pid),
+                    "title": d["kMRMediaRemoteNowPlayingInfoTitle"] as? String ?? "",
+                    "artist": d["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? "",
+                    "album": d["kMRMediaRemoteNowPlayingInfoAlbum"] as? String ?? "",
+                    "duration": n("kMRMediaRemoteNowPlayingInfoDuration"),
+                    "elapsed": n("kMRMediaRemoteNowPlayingInfoElapsedTime"),
+                    "rate": n("kMRMediaRemoteNowPlayingInfoPlaybackRate"),
+                    "timestamp": NSNumber(value: ts),
+                ]
                 Task { @MainActor in
-                    guard let self else { return }
-                    if title.isEmpty { self.remote = nil } else {
-                        let app = NSRunningApplication(processIdentifier: pid)
-                        self.remote = MediaInfo(app: app?.localizedName ?? "Reproductor", title: title,
-                                                artist: artist, album: album, position: pos, duration: dur,
-                                                playing: rate > 0, volume: nil, bundle: app?.bundleIdentifier ?? "")
-                    }
+                    guard let self, !self.helperAlive else { return }
+                    self.remote = self.remoteInfo(flat)
                     self.recompute()
                 }
             }
         }
+    }
+
+    /// Envía un comando de MediaRemote a la app que macOS considera activa.
+    private func sendRemote(_ c: MediaCommand) -> Bool {
+        guard helperAlive, let lib = Self.helperLibrary else { return false }
+        let code: Int
+        switch c {
+        case .toggle: code = 2
+        case .next: code = 4
+        case .previous: code = 5
+        }
+        let p = Self.perlProcess(lib)
+        p.standardOutput = FileHandle.nullDevice
+        var env = ProcessInfo.processInfo.environment
+        env["MAD_MR_COMMAND"] = String(code)
+        p.environment = env
+        return (try? p.run()) != nil
     }
 
     // MARK: Controles
@@ -772,7 +1011,7 @@ final class NowPlaying: ObservableObject {
     func command(_ c: MediaCommand) {
         guard !demo else { return }
         let bundle = info?.bundle ?? ""
-        if bundle == Self.spotify || bundle == Self.music {
+        if (bundle == Self.spotify || bundle == Self.music) && !denied.contains(bundle) {
             let verb: String
             switch c {
             case .previous: verb = "previous track"
@@ -784,7 +1023,9 @@ final class NowPlaying: ObservableObject {
             NSAppleScript(source: "tell application \"\(target)\" to \(verb)")?.executeAndReturnError(&err)
             if err == nil { settle(c); return }
         }
-        // Resto de apps: tecla multimedia del sistema.
+        // El resto, por MediaRemote si lo que se muestra es lo que macOS da como activo.
+        if remote?.bundle == bundle, sendRemote(c) { settle(c); return }
+        // Último recurso: tecla multimedia del sistema.
         switch c {
         case .previous: Self.mediaKey(18)
         case .toggle: Self.mediaKey(16)
@@ -800,7 +1041,7 @@ final class NowPlaying: ObservableObject {
             i.stamp = Date()
             i.playing.toggle()
             info = i
-            if rich?.bundle == i.bundle { rich = i }
+            if rich[i.bundle] != nil { rich[i.bundle] = i }
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) { [weak self] in
             Task { @MainActor in self?.refresh() }

@@ -918,7 +918,7 @@ struct PlayerBar: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(i?.title ?? "Sin reproductor").font(.wide(15)).tracking(0.4)
                     .foregroundStyle(Palette.ledCore).bloom(Palette.led, radius: 3)
-                Text(i?.artist ?? "Abre Spotify, Apple Music, YouTube Music, VLC…").font(.wide(11.5)).tracking(0.6)
+                Text(i?.artist ?? "Abre Spotify, Música, TIDAL, Deezer, VLC…").font(.wide(11.5)).tracking(0.6)
                     .foregroundStyle(Palette.silk)
                 Text(i?.album ?? "Los controles y las etiquetas aparecerán aquí").font(.wide(10)).tracking(0.5)
                     .foregroundStyle(Palette.led.opacity(0.6))
@@ -944,14 +944,17 @@ struct PlayerBar: View {
                     let t = i.position + (i.playing ? ctx.date.timeIntervalSince(i.stamp) : 0)
                     return i.duration > 0 ? min(i.duration, max(0, t)) : t
                 }()
+                // Sin posición conocida (sólo se sabe qué app suena) no se inventa un tiempo.
+                let timed = i?.timed == true
+                let total = timed ? i!.duration : 0
                 VStack(spacing: 6) {
                     HStack(alignment: .firstTextBaseline) {
-                        SegText(i == nil ? "!!!!!" : mmss(pos), cells: 5, size: 13)
+                        SegText(i == nil ? "!!!!!" : timed ? mmss(pos) : "--:--", cells: 5, size: 13)
                         Spacer(minLength: 0)
-                        Text(i != nil && i!.duration > 0 ? "-" + mmss(i!.duration - pos) : "--:--")
+                        Text(total > 0 ? "-" + mmss(total - pos) : "--:--")
                             .font(.wide(10)).tracking(0.6).foregroundStyle(Palette.led.opacity(0.6))
                     }
-                    SegBar(fraction: i != nil && i!.duration > 0 ? pos / i!.duration : 0)
+                    SegBar(fraction: total > 0 ? pos / total : 0)
                 }
             }
             .frame(maxWidth: .infinity)
