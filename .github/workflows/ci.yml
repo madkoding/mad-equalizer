@@ -36,7 +36,7 @@ jobs:
       - name: Syntax check
         working-directory: windows
         run: |
-          for f in main.js preload.js tools-icon.js renderer/*.js; do
+          for f in main.js media.js preload.js tools-icon.js renderer/*.js; do
             node --check "$f"
           done
       - name: Use-before-define check
@@ -46,7 +46,7 @@ jobs:
         run: |
           npx -y eslint@9.0.0 --no-config-lookup \
             --rule '{"no-use-before-define":["error",{"functions":false,"classes":false}]}' \
-            main.js preload.js tools-icon.js
+            main.js media.js preload.js tools-icon.js
 
   windows-package:
     name: Package Windows app
