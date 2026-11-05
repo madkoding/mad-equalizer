@@ -1,9 +1,12 @@
 'use strict';
 // Reproductor activo en Windows vía SMTC (System Media Transport Controls), la misma fuente del
-// panel de volumen: Spotify, Tidal, Apple Music, navegadores, VLC… Se consulta con PowerShell
+// panel de volumen: Spotify, Tidal, Apple Music, VLC… (sin navegadores). Se consulta con PowerShell
 // (WinRT) para no depender de módulos nativos.
 const { spawn, execFile } = require('child_process');
 const readline = require('readline');
+
+// IDs de sesión de navegadores (se ignoran: sólo interesan los reproductores de música).
+const BROWSERS = /chrome|msedge|firefox|brave|opera|vivaldi|arc\.exe|iexplore|browser/i;
 
 const PREAMBLE = `
 $ErrorActionPreference = 'Stop'
@@ -14,12 +17,23 @@ function Await($op, $t) { $task = $asTask.MakeGenericMethod($t).Invoke($null, @(
 $tM = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager, Windows.Media.Control, ContentType = WindowsRuntime]
 $tP = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionMediaProperties, Windows.Media.Control, ContentType = WindowsRuntime]
 $mgr = Await ($tM::RequestAsync()) $tM
+# Sólo reproductores: los navegadores (vídeos, pestañas con sonido) no cuentan.
+$script:skip = '${BROWSERS.source}'
+$script:last = ''
+function IsPlaying($s) { $s.GetPlaybackInfo().PlaybackStatus -eq 'Playing' }
 function Pick() {
-  $all = @($mgr.GetSessions())
-  foreach ($s in $all) { if ($s.GetPlaybackInfo().PlaybackStatus -eq 'Playing') { return $s } }
-  $c = $mgr.GetCurrentSession(); if ($c) { return $c }
-  if ($all.Count) { return $all[0] }
-  return $null
+  $all = @($mgr.GetSessions() | Where-Object { $_.SourceAppUserModelId -notmatch $script:skip })
+  if (-not $all.Count) { return $null }
+  # Si suenan varios, se mantiene el que ya se mostraba; si ninguno, el último o el que Windows da como actual.
+  $prev = $all | Where-Object { $_.SourceAppUserModelId -eq $script:last } | Select-Object -First 1
+  $s = $null
+  if ($prev -and (IsPlaying $prev)) { $s = $prev }
+  if (-not $s) { $s = $all | Where-Object { IsPlaying $_ } | Select-Object -First 1 }
+  if (-not $s) { $s = $prev }
+  if (-not $s) { $c = $mgr.GetCurrentSession(); if ($c -and $c.SourceAppUserModelId -notmatch $script:skip) { $s = $c } }
+  if (-not $s) { $s = $all[0] }
+  $script:last = $s.SourceAppUserModelId
+  return $s
 }
 `;
 
@@ -36,6 +50,7 @@ while ($true) {
       $dur = ($tl.EndTime - $tl.StartTime).TotalSeconds
       if ($dur -gt 0 -and $pos -gt $dur) { $pos = $dur }
       if ($pos -lt 0 -or $pos -gt 360000) { $pos = 0 }
+      if (-not $p.Title) { 'null'; Start-Sleep -Milliseconds 1500; continue }
       [pscustomobject]@{ id = $s.SourceAppUserModelId; title = $p.Title; artist = $p.Artist; album = $p.AlbumTitle; position = $pos; duration = $dur; playing = $playing } | ConvertTo-Json -Compress
     }
   } catch { 'null' }
