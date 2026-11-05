@@ -617,6 +617,7 @@ final class NowPlaying: ObservableObject {
     private var helperBuffer = Data()
     private var helperFailures = 0
     private var helperAlive = false
+    private var helperInput: FileHandle?            // comandos al puente, uno por línea
 
     private static let spotify = "com.spotify.client"
     private static let music = "com.apple.Music"
@@ -643,6 +644,8 @@ final class NowPlaying: ObservableObject {
         observe(dnc, "com.spotify.client.PlaybackStateChanged", app: "Spotify", bundle: Self.spotify)
         observe(dnc, "com.apple.Music.playerInfo", app: "Música", bundle: Self.music)
         observe(dnc, "com.apple.iTunes.playerInfo", app: "Música", bundle: Self.music)
+        // Escribir al puente cuando acaba de cerrarse no debe matar la app.
+        signal(SIGPIPE, SIG_IGN)
         startHelper()
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.refresh() }
@@ -886,21 +889,18 @@ final class NowPlaying: ObservableObject {
         return url
     }
 
-    private static func perlProcess(_ lib: URL) -> Process {
-        let p = Process()
-        p.executableURL = perl
-        p.arguments = ["-e", perlLoader, lib.path]
-        p.standardInput = FileHandle.nullDevice
-        p.standardError = FileHandle.nullDevice
-        return p
-    }
 
     /// Lanza el puente (una línea JSON por segundo). Si se cae, se reintenta unas cuantas veces.
     private func startHelper() {
         guard helper == nil, helperFailures < 5, let lib = Self.helperLibrary else { return }
-        let p = Self.perlProcess(lib)
-        let out = Pipe()
+        let p = Process()
+        p.executableURL = Self.perl
+        p.arguments = ["-e", Self.perlLoader, lib.path]
+        p.standardError = FileHandle.nullDevice
+        let out = Pipe(), input = Pipe()
         p.standardOutput = out
+        p.standardInput = input
+        helperInput = input.fileHandleForWriting
         out.fileHandleForReading.readabilityHandler = { [weak self] h in
             let data = h.availableData
             if data.isEmpty { h.readabilityHandler = nil; return }
@@ -914,6 +914,7 @@ final class NowPlaying: ObservableObject {
 
     private func helperExited() {
         helper = nil
+        helperInput = nil
         helperAlive = false
         helperBuffer.removeAll()
         helperFailures += 1
@@ -989,21 +990,17 @@ final class NowPlaying: ObservableObject {
         }
     }
 
-    /// Envía un comando de MediaRemote a la app que macOS considera activa.
+    /// Envía un comando de MediaRemote a la app que macOS considera activa (la del Centro de control).
     private func sendRemote(_ c: MediaCommand) -> Bool {
-        guard helperAlive, let lib = Self.helperLibrary else { return false }
+        guard helperAlive, let input = helperInput else { return false }
         let code: Int
         switch c {
         case .toggle: code = 2
         case .next: code = 4
         case .previous: code = 5
         }
-        let p = Self.perlProcess(lib)
-        p.standardOutput = FileHandle.nullDevice
-        var env = ProcessInfo.processInfo.environment
-        env["MAD_MR_COMMAND"] = String(code)
-        p.environment = env
-        return (try? p.run()) != nil
+        do { try input.write(contentsOf: Data("\(code)\n".utf8)) } catch { return false }
+        return true
     }
 
     // MARK: Controles
@@ -1023,8 +1020,8 @@ final class NowPlaying: ObservableObject {
             NSAppleScript(source: "tell application \"\(target)\" to \(verb)")?.executeAndReturnError(&err)
             if err == nil { settle(c); return }
         }
-        // El resto, por MediaRemote si lo que se muestra es lo que macOS da como activo.
-        if remote?.bundle == bundle, sendRemote(c) { settle(c); return }
+        // El resto (TIDAL, Deezer…), por MediaRemote.
+        if sendRemote(c) { settle(c); return }
         // Último recurso: tecla multimedia del sistema.
         switch c {
         case .previous: Self.mediaKey(18)

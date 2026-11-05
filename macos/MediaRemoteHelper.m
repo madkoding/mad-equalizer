@@ -5,7 +5,9 @@
 // la app lo lanza, perl carga esta biblioteca con DynaLoader y llama a `mad_mediaremote`, que
 // escribe en stdout una línea JSON por segundo con lo que está sonando (o `null`).
 //
-// Con la variable MAD_MR_COMMAND=<n> envía ese comando (MRCommand) al reproductor y termina.
+// Por stdin recibe comandos, uno por línea (número de MRCommand: 2 play/pausa, 4 siguiente,
+// 5 anterior). El proceso sigue vivo, así que el mensaje a MediaRemote llega aunque sea asíncrono.
+// Cuando stdin se cierra (la app terminó) el proceso sale.
 #import <Foundation/Foundation.h>
 #include <dlfcn.h>
 #include <stdio.h>
@@ -18,6 +20,7 @@ typedef void (*PlayingFn)(dispatch_queue_t, void (^)(Boolean));
 typedef Boolean (*CommandFn)(int, CFDictionaryRef);
 
 static InfoFn getInfo;
+static CommandFn sendCommand;
 static PidFn getPid;
 static PlayingFn getPlaying;
 
@@ -30,6 +33,25 @@ static void emit(id obj) {
         if (data) fwrite(data.bytes, 1, data.length, stdout); else fputs("null", stdout);
         fputc('\n', stdout);
         fflush(stdout);
+    }
+}
+
+/// Lee de stdin y envía cada comando completo; con EOF (la app se cerró) termina.
+static void readCommands(void) {
+    static char line[64];
+    static size_t len = 0;
+    char buf[64];
+    ssize_t n = read(STDIN_FILENO, buf, sizeof buf);
+    if (n <= 0) exit(0);
+    for (ssize_t i = 0; i < n; i++) {
+        if (buf[i] == '\n') {
+            line[len] = 0;
+            len = 0;
+            int cmd = atoi(line);
+            if (cmd > 0 && sendCommand) sendCommand(cmd, NULL);
+        } else if (len < sizeof line - 1) {
+            line[len++] = buf[i];
+        }
     }
 }
 
@@ -67,12 +89,7 @@ void mad_mediaremote(void *perl, void *cv) {
     void *h = dlopen("/System/Library/PrivateFrameworks/MediaRemote.framework/MediaRemote", RTLD_LAZY);
     if (!h) exit(2);
 
-    const char *cmd = getenv("MAD_MR_COMMAND");
-    if (cmd && *cmd) {
-        CommandFn send = (CommandFn)dlsym(h, "MRMediaRemoteSendCommand");
-        exit(send && send(atoi(cmd), NULL) ? 0 : 1);
-    }
-
+    sendCommand = (CommandFn)dlsym(h, "MRMediaRemoteSendCommand");
     getInfo = (InfoFn)dlsym(h, "MRMediaRemoteGetNowPlayingInfo");
     getPid = (PidFn)dlsym(h, "MRMediaRemoteGetNowPlayingApplicationPID");
     getPlaying = (PlayingFn)dlsym(h, "MRMediaRemoteGetNowPlayingApplicationIsPlaying");
@@ -83,5 +100,8 @@ void mad_mediaremote(void *perl, void *cv) {
     dispatch_source_set_timer(timer, DISPATCH_TIME_NOW, NSEC_PER_SEC, NSEC_PER_SEC / 10);
     dispatch_source_set_event_handler(timer, ^{ poll(q); });
     dispatch_resume(timer);
+    dispatch_source_t input = dispatch_source_create(DISPATCH_SOURCE_TYPE_READ, STDIN_FILENO, 0, q);
+    dispatch_source_set_event_handler(input, ^{ readCommands(); });
+    dispatch_resume(input);
     dispatch_main();
 }
