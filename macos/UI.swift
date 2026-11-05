@@ -44,10 +44,28 @@ final class DragStart: ObservableObject {
 
 /// Brillo de LED: núcleo claro con halo azul.
 extension GraphicsContext {
+    /// Bloom: halo ancho y tenue más el brillo cercano del LED.
     func glow(_ path: Path, _ color: Color = Palette.ledCore, halo: Color = Palette.led, radius: CGFloat = 4) {
+        drawLayer { l in
+            l.addFilter(.shadow(color: halo.opacity(0.5), radius: radius * 3.4))
+            l.fill(path, with: .color(color))
+        }
         drawLayer { l in
             l.addFilter(.shadow(color: halo, radius: radius))
             l.fill(path, with: .color(color))
+        }
+    }
+}
+
+extension View {
+    /// Bloom de LED: núcleo + tres halos cada vez más anchos y tenues.
+    @ViewBuilder func bloom(_ color: Color = Palette.led, radius: CGFloat = 4, on: Bool = true) -> some View {
+        if on {
+            self.shadow(color: color, radius: radius)
+                .shadow(color: color.opacity(0.6), radius: radius * 2.6)
+                .shadow(color: color.opacity(0.3), radius: radius * 5.5)
+        } else {
+            self
         }
     }
 }
@@ -79,8 +97,7 @@ struct SegText: View {
             Text(String(repeating: "~", count: cells)).foregroundStyle(Palette.led.opacity(0.07))
             Text(leading ? text + pad : pad + text)
                 .foregroundStyle(Palette.ledCore)
-                .shadow(color: Palette.led, radius: size * 0.12)
-                .shadow(color: Palette.led.opacity(0.55), radius: size * 0.4)
+                .bloom(Palette.led, radius: size * 0.1)
         }
         .font(.seg(size))
         .fixedSize()
@@ -115,7 +132,7 @@ struct Lamp: View {
             .foregroundStyle(on ? Color.black.opacity(0.85) : Palette.led.opacity(0.35))
             .padding(.horizontal, 8).frame(height: 16)
             .background(Capsule().fill(on ? Palette.led : Palette.ledOff))
-            .shadow(color: on ? Palette.led.opacity(0.8) : .clear, radius: 5)
+            .bloom(Palette.led, radius: 4, on: on)
             .fixedSize()
     }
 }
@@ -388,6 +405,7 @@ struct VUMeter: View {
                      at: CGPoint(x: overRect.midX, y: overRect.midY))
         }
         .shadow(color: Palette.led.opacity(0.3), radius: 14)
+        .shadow(color: Palette.led.opacity(0.16), radius: 36)
     }
 }
 
@@ -490,7 +508,7 @@ struct FaderCap: View {
                 Rectangle().fill(Color.black.opacity(0.3)).frame(height: 0.7)
             }.padding(.horizontal, 5)
             Rectangle().fill(Palette.ledCore).frame(height: 2).padding(.horizontal, 3)
-                .shadow(color: Palette.led, radius: 3)
+                .bloom(Palette.led, radius: 3)
         }
         .shadow(color: .black.opacity(0.75), radius: 2.5, y: 2.5)
     }
@@ -561,7 +579,7 @@ struct BandColumn: View {
     let label: String
     let selected: Bool
     let onTouch: () -> Void
-    static let height: CGFloat = 196
+    static let height: CGFloat = 212
     static let width: CGFloat = 46
     static let spacing: CGFloat = 8
     /// Centro de la perilla dentro de la columna (LEDs 7 + 4 de separación + medio fader).
@@ -577,7 +595,7 @@ struct BandColumn: View {
             .frame(height: Self.height)
             Text(label).font(.wide(11))
                 .foregroundStyle(selected ? Palette.ledCore : Palette.silk.opacity(0.7))
-                .shadow(color: selected ? Palette.led : .clear, radius: 4)
+                .bloom(Palette.led, radius: 4, on: selected)
         }
         .frame(width: Self.width)
     }
@@ -736,7 +754,7 @@ struct KeyStyle: ButtonStyle {
                 RoundedRectangle(cornerRadius: 1.5)
                     .fill(on ? Palette.ledCore : dim ? Palette.led.opacity(0.35) : Palette.ledOff)
                     .overlay(RoundedRectangle(cornerRadius: 1.5).stroke(Color.black.opacity(0.6), lineWidth: 0.5))
-                    .shadow(color: on ? Palette.led : .clear, radius: 4)
+                    .bloom(Palette.led, radius: 3, on: on)
                     .frame(height: 3)
                     .padding(.horizontal, 9)
                     .padding(.top, 4)
@@ -795,13 +813,13 @@ struct PowerButton: View {
                     Circle().fill(Color.black).frame(width: 52, height: 52)
                     Circle().stroke(on ? Palette.ledCore : Palette.ledOff, lineWidth: 2.5)
                         .frame(width: 47, height: 47)
-                        .shadow(color: on ? Palette.led : .clear, radius: 6)
+                        .bloom(Palette.led, radius: 5, on: on)
                     Circle().fill(RadialGradient(colors: [Color(white: 0.82), Color(white: 0.45), Color(white: 0.22)],
                                                  center: UnitPoint(x: 0.35, y: 0.3), startRadius: 0, endRadius: 30))
                         .frame(width: 38, height: 38)
                     Image(systemName: "power").font(.system(size: 15, weight: .bold))
                         .foregroundStyle(on ? Palette.led : Color.black.opacity(0.55))
-                        .shadow(color: on ? Palette.led : .clear, radius: 4)
+                        .bloom(Palette.led, radius: 3, on: on)
                 }
             }
             .buttonStyle(.plain)
@@ -888,16 +906,16 @@ struct PlayerBar: View {
                                          center: UnitPoint(x: 0.3, y: 0.25), startRadius: 0, endRadius: 40))
                 Image(systemName: "music.note").font(.system(size: 22, weight: .bold))
                     .foregroundStyle(Palette.ledCore)
-                    .shadow(color: Palette.led, radius: 3)
+                    .bloom(Palette.led, radius: 3)
             }
             .frame(width: 48, height: 48)
             .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.black, lineWidth: 1.5))
-            .shadow(color: Palette.led.opacity(0.35), radius: 8)
+            .bloom(Palette.led.opacity(0.7), radius: 5)
             .opacity(i == nil ? 0.35 : 1)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(i?.title ?? "Sin reproductor").font(.wide(15)).tracking(0.4)
-                    .foregroundStyle(Palette.ledCore).shadow(color: Palette.led.opacity(0.55), radius: 4)
+                    .foregroundStyle(Palette.ledCore).bloom(Palette.led, radius: 3)
                 Text(i?.artist ?? "Abre Spotify, Apple Music, YouTube Music, VLC…").font(.wide(11.5)).tracking(0.6)
                     .foregroundStyle(Palette.silk)
                 Text(i?.album ?? "Los controles y las etiquetas aparecerán aquí").font(.wide(10)).tracking(0.5)
@@ -982,7 +1000,7 @@ struct TransportStyle: ButtonStyle {
         return configuration.label
             .font(.system(size: accent ? 16 : 12, weight: .bold))
             .foregroundStyle(accent ? Palette.ledCore : Palette.silk.opacity(0.9))
-            .shadow(color: accent ? Palette.led : .clear, radius: 3)
+            .bloom(Palette.led, radius: 3, on: accent)
             .frame(width: width, height: height)
             .background(RoundedRectangle(cornerRadius: 4)
                 .fill(LinearGradient(colors: p ? [Color(white: 0.09), Color(white: 0.15)] : [Color(white: 0.25), Color(white: 0.11)],
@@ -1004,7 +1022,7 @@ struct RootView: View {
     @StateObject private var eq = EQModel()
     @StateObject private var meters = MeterModel()
     @StateObject private var player = NowPlaying()
-    @State private var vuHeight: CGFloat = 153
+    @State private var vuHeight: CGFloat = 137
     static let size = CGSize(width: 1120, height: 660)
     /// Franja superior de la ventana (zona de la barra de título oculta): lleva la serigrafía.
     static let strip: CGFloat = 28
@@ -1066,8 +1084,8 @@ struct RootView: View {
             VUMeterView(meters: meters, left: true).frame(width: 230, height: vuHeight)
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
-                    Text("MAD").font(.wide(36)).tracking(1).foregroundStyle(Palette.silk)
-                    Text("EQUALIZER").font(.wide(18)).tracking(1).foregroundStyle(Palette.silk)
+                    Text("MAD").font(.wide(18)).tracking(1).foregroundStyle(Palette.silk)
+                    Text("EQUALIZER").font(.wide(9)).tracking(0.6).foregroundStyle(Palette.silk)
                     Spacer()
                     Text("16 BAND").font(.wide(12)).tracking(2).foregroundStyle(Palette.led.opacity(0.8))
                 }

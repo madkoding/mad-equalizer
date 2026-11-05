@@ -219,7 +219,7 @@ function buildKnobs() {
 // ---------------------------------------------------------------------------------------------
 // Faders: arrastrar la perilla la mueve en relativo; tocar el riel salta a ese punto
 
-const WELL_W = 1028, WELL_H = 236;
+const WELL_W = 1028, WELL_H = 252;
 function buildFaders() {
   const c = $('faders');
   const geo = G.wellGeometry(WELL_W);
@@ -320,7 +320,8 @@ function setSeg(el, text) {
   if (!el.firstChild) {
     el.style.fontSize = size + 'px';
     el.innerHTML = `<span class="ghost">${'~'.repeat(cells)}</span><span class="lit"></span>`;
-    el.querySelector('.lit').style.textShadow = `0 0 ${size * 0.12}px var(--led), 0 0 ${size * 0.4}px rgba(77,179,255,0.55)`;
+    // Bloom: núcleo + halos cada vez más anchos, escalados con el tamaño de la celda
+    el.querySelector('.lit').style.textShadow = `0 0 ${size * 0.1}px var(--led), 0 0 ${size * 0.3}px rgba(77,179,255,0.8), 0 0 ${size * 0.7}px rgba(77,179,255,0.5), 0 0 ${size * 1.4}px rgba(77,179,255,0.25)`;
   }
   const visible = text.replace(/\./g, '').length;
   const pad = '!'.repeat(Math.max(0, cells - visible));

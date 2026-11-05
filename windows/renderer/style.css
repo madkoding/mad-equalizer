@@ -2,6 +2,9 @@
 @font-face { font-family: DSEG14; src: url(fonts/DSEG14Classic-Italic.ttf); }
 
 :root {
+  /* Bloom: núcleo + tres halos cada vez más anchos y tenues */
+  --bloom-box: 0 0 3px var(--led), 0 0 9px rgba(77,179,255,0.75), 0 0 22px rgba(77,179,255,0.45), 0 0 44px rgba(77,179,255,0.22);
+  --bloom-text: 0 0 2px var(--led), 0 0 6px rgba(77,179,255,0.8), 0 0 14px rgba(77,179,255,0.5), 0 0 28px rgba(77,179,255,0.25);
   --led: rgb(77,179,255);
   --led-core: rgb(199,235,255);
   --led-off: rgb(15,28,48);
@@ -42,11 +45,11 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 
 /* Cabecera */
 header { display: flex; gap: 18px; align-items: flex-start; }
-canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0 14px rgba(77,179,255,0.3); flex: none; }
+canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0 14px rgba(77,179,255,0.3), 0 0 36px rgba(77,179,255,0.16); flex: none; }
 .center { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .brand { display: flex; align-items: baseline; gap: 5px; }
-.brand .logo { font-size: 22.2px; letter-spacing: 1px; color: var(--silk); }
-.brand .sub { font-size: 11.1px; letter-spacing: 1px; color: var(--silk); } /* la mitad que MAD */
+.brand .logo { font-size: 11.1px; letter-spacing: 1px; color: var(--silk); }
+.brand .sub { font-size: 5.6px; letter-spacing: 0.6px; color: var(--silk); } /* la mitad que MAD */
 .brand .bands { font-size: 7.4px; letter-spacing: 2px; color: rgba(77,179,255,0.8); }
 
 .display { position: relative; padding: 11px 14px; border-radius: 8px; display: flex; flex-direction: column; gap: 9px;
@@ -65,7 +68,7 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 .seg { position: relative; display: inline-block; font-family: DSEG14; white-space: pre; line-height: 1; }
 .seg .ghost { color: rgba(77,179,255,0.07); }
 .seg .lit { position: absolute; top: 0; right: 0; color: var(--led-core);
-  text-shadow: 0 0 2.5px var(--led), 0 0 8px rgba(77,179,255,0.55); }
+  text-shadow: var(--bloom-text); }
 .seg[data-lead] .lit { left: 0; right: auto; }
 
 .bars { display: flex; flex-direction: column; gap: 8px; padding-top: 3px; }
@@ -75,13 +78,13 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 
 .lamp { font-size: 6.1px; letter-spacing: 0.6px; padding: 0 8px; height: 16px; line-height: 16px; border-radius: 8px;
   color: rgba(77,179,255,0.35); background: var(--led-off); white-space: nowrap; }
-.lamp.on { color: rgba(0,0,0,0.85); background: var(--led); box-shadow: 0 0 8px rgba(77,179,255,0.8); }
-.status { font-size: 6.1px; letter-spacing: 0.5px; color: rgba(77,179,255,0.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lamp.on { color: rgba(0,0,0,0.85); background: var(--led); box-shadow: var(--bloom-box); }
+.status { text-shadow: 0 0 6px rgba(77,179,255,0.55); font-size: 6.1px; letter-spacing: 0.5px; color: rgba(77,179,255,0.75); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
 /* Faders */
 .well { border-radius: 10px; background: rgb(8,9,12); padding: 0 0 4px;
   box-shadow: inset 0 3px 10px #000, inset 0 0 0 1px rgba(0,0,0,0.8), 0 1px 0 rgba(255,255,255,0.1); }
-#faders { display: block; width: 1028px; height: 236px; }
+#faders { display: block; width: 1028px; height: 252px; }
 
 /* Controles */
 .controls { display: flex; align-items: center; gap: 14px; height: 134px; }
@@ -91,8 +94,8 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 #power .cap { position: absolute; inset: 7px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   background: radial-gradient(circle at 35% 30%, rgb(209,209,209), rgb(115,115,115) 55%, rgb(56,56,56)); color: rgba(0,0,0,0.55); }
 #power svg { width: 17px; height: 17px; }
-#power.on .ring { border-color: var(--led-core); box-shadow: 0 0 10px var(--led), inset 0 0 6px var(--led); }
-#power.on .cap { color: var(--led); filter: drop-shadow(0 0 3px var(--led)); }
+#power.on .ring { border-color: var(--led-core); box-shadow: var(--bloom-box), inset 0 0 6px var(--led); }
+#power.on .cap { color: var(--led); filter: drop-shadow(0 0 3px var(--led)) drop-shadow(0 0 9px rgba(77,179,255,0.6)); }
 #power:active .cap { transform: translateY(1px); }
 
 .col { display: flex; flex-direction: column; gap: 8px; }
@@ -112,7 +115,7 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 .key button::before { content: ''; position: absolute; top: 4px; left: 9px; right: 9px; height: 3px; border-radius: 1.5px;
   background: var(--led-off); box-shadow: inset 0 0 0 0.5px rgba(0,0,0,0.6); }
 .key button.dim::before { background: rgba(77,179,255,0.35); }
-.key button.on::before { background: var(--led-core); box-shadow: 0 0 6px var(--led), 0 0 0 0.5px rgba(0,0,0,0.6); }
+.key button.on::before { background: var(--led-core); box-shadow: var(--bloom-box); }
 .key button.blink::before { animation: blink 0.6s steps(1) infinite; }
 @keyframes blink { 50% { background: var(--led-off); box-shadow: none; } }
 .key button:active { transform: translateY(1px); background: linear-gradient(180deg, rgb(23,23,23), rgb(38,38,38));
@@ -132,10 +135,10 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
   background: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 50%); }
 .player .src { width: 58px; display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .player .art { width: 48px; height: 48px; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: var(--led-core);
-  background: radial-gradient(circle at 30% 25%, rgb(32,78,128), rgb(10,24,44) 70%); box-shadow: 0 0 0 1.5px #000, 0 0 10px rgba(77,179,255,0.35); }
-.player .art svg { width: 24px; height: 24px; filter: drop-shadow(0 0 3px var(--led)); }
+  background: radial-gradient(circle at 30% 25%, rgb(32,78,128), rgb(10,24,44) 70%); box-shadow: 0 0 0 1.5px #000, 0 0 10px rgba(77,179,255,0.35), 0 0 28px rgba(77,179,255,0.2); }
+.player .art svg { width: 24px; height: 24px; filter: drop-shadow(0 0 3px var(--led)) drop-shadow(0 0 9px rgba(77,179,255,0.6)); }
 .player .tags { width: 270px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
-.player .t-title { font-size: 9.2px; letter-spacing: 0.4px; color: var(--led-core); text-shadow: 0 0 6px rgba(77,179,255,0.55); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.player .t-title { font-size: 9.2px; letter-spacing: 0.4px; color: var(--led-core); text-shadow: var(--bloom-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .player .t-artist { font-size: 7.1px; letter-spacing: 0.6px; color: var(--silk); white-space: nowrap; }
 .player .t-album { font-size: 6.0px; letter-spacing: 0.5px; color: rgba(77,179,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .transport { display: flex; align-items: center; gap: 8px; }
@@ -144,14 +147,14 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.9), inset 0 2px 0 -1px rgba(255,255,255,0.13), 0 2px 3px rgba(0,0,0,0.65); }
 .tbtn svg { width: 14px; height: 14px; }
 .tbtn.big { width: 52px; height: 34px; color: var(--led-core); }
-.tbtn.big svg { width: 18px; height: 18px; filter: drop-shadow(0 0 3px var(--led)); }
+.tbtn.big svg { width: 18px; height: 18px; filter: drop-shadow(0 0 3px var(--led)) drop-shadow(0 0 9px rgba(77,179,255,0.6)); }
 .progress { flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .times { display: flex; justify-content: space-between; align-items: baseline; }
-.seg.tm { font-size: 14.9px; color: var(--led-core); text-shadow: 0 0 2.5px var(--led), 0 0 8px rgba(77,179,255,0.55); }
+.seg.tm { font-size: 14.9px; color: var(--led-core); text-shadow: var(--bloom-text); }
 .dur { font-size: 6.1px; color: rgba(77,179,255,0.6); letter-spacing: 0.6px; }
 .pbar, .vbar { height: 7px; border-radius: 2px; background: var(--led-off); position: relative; overflow: hidden;
   -webkit-mask-image: repeating-linear-gradient(90deg, #000 0 5px, transparent 5px 7px); }
-.pbar i, .vbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--led); box-shadow: 0 0 8px var(--led); }
+.pbar i, .vbar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--led); box-shadow: 0 0 6px var(--led), 0 0 16px rgba(77,179,255,0.55), 0 0 32px rgba(77,179,255,0.25); }
 .vol { width: 118px; display: flex; align-items: center; gap: 8px; color: rgba(77,179,255,0.8); }
 .vol svg { width: 14px; height: 14px; flex: none; }
 .vol .vbar { flex: 1; }
