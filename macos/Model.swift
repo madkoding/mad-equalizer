@@ -575,6 +575,8 @@ struct MediaInfo: Equatable {
     var bundle = ""
     /// `false` si la fuente no da la posición (sólo se sabe qué suena): la interfaz muestra "--:--".
     var timed = true
+    /// Carátula de la canción, si la fuente la da.
+    var artwork: NSImage? = nil
 }
 
 enum MediaCommand { case previous, toggle, next }
@@ -617,6 +619,9 @@ final class NowPlaying: ObservableObject {
     private var helperBuffer = Data()
     private var helperFailures = 0
     private var helperAlive = false
+    private var remoteArt: (key: String, image: NSImage?) = ("", nil)  // última carátula de MediaRemote
+    private var artCache: [String: NSImage] = [:]   // Spotify (por URL) y Música (por canción)
+    private var artTried: Set<String> = []
     private var helperInput: FileHandle?            // comandos al puente, uno por línea
 
     private static let spotify = "com.spotify.client"
@@ -741,7 +746,7 @@ final class NowPlaying: ObservableObject {
               set s to player state as string
               if s is "stopped" then return {s}
               set t to current track
-              return {s, name of t, artist of t, album of t, (duration of t) / 1000, player position, sound volume}
+              return {s, name of t, artist of t, album of t, (duration of t) / 1000, player position, sound volume, artwork url of t}
             end tell
           end timeout
         end if
@@ -785,9 +790,55 @@ final class NowPlaying: ObservableObject {
         func n(_ k: Int) -> Double { r.atIndex(k)?.doubleValue ?? 0 }
         let title = s(2)
         guard !title.isEmpty else { return nil }
-        return MediaInfo(app: bundle == Self.spotify ? "Spotify" : "Música", title: title,
-                         artist: s(3), album: s(4), position: n(6), duration: n(5),
-                         playing: state == "playing", volume: min(1, max(0, n(7) / 100)), bundle: bundle)
+        var i = MediaInfo(app: bundle == Self.spotify ? "Spotify" : "Música", title: title,
+                          artist: s(3), album: s(4), position: n(6), duration: n(5),
+                          playing: state == "playing", volume: min(1, max(0, n(7) / 100)), bundle: bundle)
+        i.artwork = bundle == Self.spotify ? spotifyArtwork(s(8)) : musicArtwork("\(title)|\(i.artist)|\(i.album)")
+        return i
+    }
+
+    // MARK: Carátulas
+
+    private func storeArt(_ image: NSImage, _ key: String) {
+        if artCache.count > 40 { artCache.removeAll(); artTried.removeAll() }
+        artCache[key] = image
+    }
+
+    /// Spotify da una URL (i.scdn.co); se descarga una vez y queda en caché.
+    private func spotifyArtwork(_ link: String) -> NSImage? {
+        guard !link.isEmpty, let url = URL(string: link) else { return nil }
+        if let img = artCache[link] { return img }
+        guard !artTried.contains(link) else { return nil }
+        artTried.insert(link)
+        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
+            guard let data else { return }
+            Task { @MainActor in
+                guard let self, let img = NSImage(data: data) else { return }
+                self.storeArt(img, link)
+                self.refresh()
+            }
+        }.resume()
+        return nil
+    }
+
+    private static let musicArtworkScript = """
+    if application "Music" is running then
+      with timeout of 2 seconds
+        tell application "Music" to return data of artwork 1 of current track
+      end timeout
+    end if
+    """
+
+    /// Música da la imagen en sí; se pide una sola vez por canción.
+    private func musicArtwork(_ key: String) -> NSImage? {
+        if let img = artCache[key] { return img }
+        guard !artTried.contains(key) else { return nil }
+        artTried.insert(key)
+        var err: NSDictionary?
+        guard let d = NSAppleScript(source: Self.musicArtworkScript)?.executeAndReturnError(&err), err == nil,
+              let img = NSImage(data: d.data) else { return nil }
+        storeArt(img, key)
+        return img
     }
 
     // MARK: Notificaciones (Spotify y Música)
@@ -939,6 +990,17 @@ final class NowPlaying: ObservableObject {
     /// Convierte lo leído de MediaRemote; descarta lo que no venga de un reproductor.
     private func remoteInfo(_ d: [String: Any]) -> MediaInfo? {
         func num(_ k: String) -> Double { (d[k] as? NSNumber)?.doubleValue ?? 0 }
+        // La carátula sólo llega cuando cambia (en base64 desde el puente, o en bruto en la consulta directa).
+        let artKey = d["artworkKey"] as? String ?? ""
+        if artKey != remoteArt.key {
+            if let b64 = d["artwork"] as? String {
+                remoteArt = (artKey, Data(base64Encoded: b64).flatMap(NSImage.init(data:)))
+            } else if let raw = d["artworkData"] as? Data {
+                remoteArt = (artKey, NSImage(data: raw))
+            } else if d["artworkData"] != nil || d["artwork"] != nil {
+                remoteArt = (artKey, nil)
+            }
+        }
         let title = d["title"] as? String ?? ""
         guard !title.isEmpty, let app = runningApp(pid: pid_t(num("pid"))),
               let bundle = app.bundleIdentifier, isPlayer(bundle) else { return nil }
@@ -947,6 +1009,7 @@ final class NowPlaying: ObservableObject {
                           position: num("elapsed"), duration: num("duration"),
                           playing: (d["playing"] as? Bool ?? false) || num("rate") > 0,
                           volume: nil, bundle: bundle)
+        if artKey == remoteArt.key { i.artwork = remoteArt.image }
         // La posición corresponde al instante en que el reproductor la informó, no al de la lectura.
         let ts = num("timestamp")
         if ts > 0 { i.stamp = Date(timeIntervalSince1970: ts) }
@@ -971,7 +1034,13 @@ final class NowPlaying: ObservableObject {
                 let d = (dict as NSDictionary?) as? [String: Any] ?? [:]
                 func n(_ k: String) -> NSNumber { d[k] as? NSNumber ?? NSNumber(value: 0) }
                 let ts = (d["kMRMediaRemoteNowPlayingInfoTimestamp"] as? Date)?.timeIntervalSince1970 ?? 0
+                let art = d["kMRMediaRemoteNowPlayingInfoArtworkData"] as? Data
+                let artKey = ["Title", "Artist", "Album"]
+                    .map { d["kMRMediaRemoteNowPlayingInfo\($0)"] as? String ?? "" }
+                    .joined(separator: "|") + "|\(art?.count ?? 0)"
                 let flat: [String: Any] = [
+                    "artworkKey": artKey,
+                    "artworkData": art ?? NSNull(),
                     "pid": NSNumber(value: pid),
                     "title": d["kMRMediaRemoteNowPlayingInfoTitle"] as? String ?? "",
                     "artist": d["kMRMediaRemoteNowPlayingInfoArtist"] as? String ?? "",

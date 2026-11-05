@@ -906,13 +906,18 @@ struct PlayerBar: View {
                 RoundedRectangle(cornerRadius: 5)
                     .fill(RadialGradient(colors: [Color(red: 0.13, green: 0.31, blue: 0.5), Color(red: 0.04, green: 0.09, blue: 0.17)],
                                          center: UnitPoint(x: 0.3, y: 0.25), startRadius: 0, endRadius: 40))
-                Image(systemName: "music.note").font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(Palette.ledCore)
-                    .bloom(Palette.led, radius: 3)
+                if let art = i?.artwork {
+                    Image(nsImage: art).resizable().interpolation(.high).aspectRatio(contentMode: .fill)
+                } else {
+                    Image(systemName: "music.note").font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(Palette.ledCore)
+                        .bloom(Palette.led, radius: 3)
+                }
             }
             .frame(width: 48, height: 48)
+            .clipShape(RoundedRectangle(cornerRadius: 5))
             .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.black, lineWidth: 1.5))
-            .bloom(Palette.led.opacity(0.7), radius: 5)
+            .bloom(Palette.led.opacity(i?.artwork == nil ? 0.7 : 0.35), radius: 5)
             .opacity(i == nil ? 0.35 : 1)
 
             VStack(alignment: .leading, spacing: 5) {
