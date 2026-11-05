@@ -34,6 +34,7 @@ cat > "$APP/Contents/Info.plist" <<'EOF'
 <key>NSHighResolutionCapable</key><true/>
 <key>ATSApplicationFontsPath</key><string>.</string>
 <key>NSAudioCaptureUsageDescription</key><string>MAD Equalizer necesita capturar el audio del sistema para ecualizarlo antes de enviarlo a tus altavoces o audífonos.</string>
+<key>NSAppleEventsUsageDescription</key><string>MAD Equalizer controla Spotify y Música (reproducir, pausar, siguiente, anterior) desde su barra de reproductor.</string>
 </dict></plist>
 EOF
 sed -i.bak "s/@VERSION@/$VERSION/g" "$APP/Contents/Info.plist" && rm -f "$APP/Contents/Info.plist.bak"
