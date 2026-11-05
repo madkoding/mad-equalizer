@@ -554,3 +554,37 @@ final class MeterModel: ObservableObject {
         return b.isEmpty ? -.infinity : Self.loudness(b.reduce(0, +) / Double(b.count))
     }
 }
+
+// MARK: - Reproductor
+
+/// Lo que se sabe de la app de música activa.
+struct MediaInfo: Equatable {
+    var app: String
+    var title: String
+    var artist: String
+    var album: String
+    /// Posición (s) en el momento `stamp`; la interfaz la hace avanzar mientras `playing`.
+    var position: Double
+    var duration: Double
+    var playing: Bool
+    var volume: Double?
+    var stamp = Date()
+}
+
+enum MediaCommand { case previous, toggle, next }
+
+/// Reproductor detectado (o ninguno). La detección real llega en un cambio aparte; por ahora
+/// `MAD_DEMO_PLAYER=1` muestra una pista de ejemplo.
+@MainActor
+final class NowPlaying: ObservableObject {
+    @Published private(set) var info: MediaInfo?
+
+    init() {
+        if ProcessInfo.processInfo.environment["MAD_DEMO_PLAYER"] != nil {
+            info = MediaInfo(app: "Spotify", title: "Midnight City", artist: "M83",
+                             album: "Hurry Up, We're Dreaming · 2011", position: 108, duration: 222, playing: true, volume: 0.68)
+        }
+    }
+
+    func command(_ c: MediaCommand) {}
+}

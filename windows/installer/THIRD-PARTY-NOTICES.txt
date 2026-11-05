@@ -19,6 +19,8 @@ Electron 33
 Michroma font
   Copyright 2011 The Michroma Project Authors
   License: SIL Open Font License 1.1 (see licenses/OFL-Michroma.txt)
+  La tipografía de la interfaz, MAD Microgramma Black, es una derivada más pesada de Michroma
+  (misma licencia).
 
 DSEG font (DSEG14 Classic Italic)
   Copyright (c) 2020, keshikan, with Reserved Font Name "DSEG"

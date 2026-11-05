@@ -219,7 +219,7 @@ function buildKnobs() {
 // ---------------------------------------------------------------------------------------------
 // Faders: arrastrar la perilla la mueve en relativo; tocar el riel salta a ese punto
 
-const WELL_W = 1028, WELL_H = 335;
+const WELL_W = 1028, WELL_H = 236;
 function buildFaders() {
   const c = $('faders');
   const geo = G.wellGeometry(WELL_W);
@@ -250,6 +250,64 @@ function buildFaders() {
 const snap = (v) => { const step = S.rangeDB > 6 ? 0.5 : 0.25; return Math.round(v / step) * step; };
 
 // ---------------------------------------------------------------------------------------------
+// Reproductor: etiquetas y controles de la app de música detectada (o "sin reproductor")
+
+const PL = {
+  el: { box: $('player'), src: $('plSrc'), title: $('plTitle'), artist: $('plArtist'), album: $('plAlbum'),
+        remain: $('plRemain'), bar: $('plBar'), vol: $('plVol'), volBar: $('plVolBar'), icon: $('plToggleIcon') },
+  info: null, at: 0,
+};
+const EMPTY = { title: 'Sin reproductor', artist: 'Abre Spotify, Apple Music, YouTube Music, VLC…', album: 'Los controles y las etiquetas aparecerán aquí' };
+const PLAY_ICON = 'M8 5v14l11-7z', PAUSE_ICON = 'M7 5h3.5v14H7zM13.5 5H17v14h-3.5z';
+const mmss = (t) => { t = Math.max(0, Math.round(t)); return String(Math.floor(t / 60)).padStart(2, '0') + ':' + String(t % 60).padStart(2, '0'); };
+
+/** info: { app, title, artist, album, position, duration, playing, volume } o null si no hay reproductor. */
+function setPlayer(info) {
+  PL.info = info; PL.at = performance.now();
+  const e = PL.el, on = !!info;
+  e.box.classList.toggle('empty', !on);
+  e.src.textContent = on ? String(info.app || 'REPRODUCTOR').toUpperCase() : 'SIN APP';
+  e.src.classList.toggle('on', on);
+  e.title.textContent = on ? info.title || '—' : EMPTY.title;
+  e.artist.textContent = on ? info.artist || '' : EMPTY.artist;
+  e.album.textContent = on ? info.album || '' : EMPTY.album;
+  e.icon.setAttribute('d', on && info.playing ? PAUSE_ICON : PLAY_ICON);
+  const hasVol = on && typeof info.volume === 'number';
+  e.vol.classList.toggle('hidden', !hasVol);
+  if (hasVol) e.volBar.style.width = Math.round(info.volume * 100) + '%';
+  drawPlayerTime();
+}
+
+function drawPlayerTime() {
+  const i = PL.info, e = PL.el;
+  if (!i || !(i.duration > 0)) {
+    setSeg($('plElapsed'), i ? mmss(i.position || 0) : '--:--'.replace(/-/g, '!'));
+    e.remain.textContent = '--:--'; e.bar.style.width = '0%';
+    return;
+  }
+  const pos = Math.min(i.duration, (i.position || 0) + (i.playing ? (performance.now() - PL.at) / 1000 : 0));
+  setSeg($('plElapsed'), mmss(pos));
+  e.remain.textContent = '-' + mmss(i.duration - pos);
+  e.bar.style.width = (100 * pos / i.duration).toFixed(1) + '%';
+}
+
+function buildPlayer() {
+  const send = (cmd) => () => api.media?.command(cmd);
+  $('plPrev').addEventListener('click', send('previous'));
+  $('plToggle').addEventListener('click', send('toggle'));
+  $('plNext').addEventListener('click', send('next'));
+  setInterval(drawPlayerTime, 500);
+  // En modo demo hay una pista de ejemplo; en el equipo real llega por api.media (si el sistema la detecta).
+  if (api.demo) {
+    setPlayer({ app: 'Spotify', title: 'Midnight City', artist: 'M83', album: 'Hurry Up, We\'re Dreaming · 2011',
+                position: 108, duration: 222, playing: true, volume: 0.68 });
+  } else {
+    setPlayer(null);
+    api.media?.onUpdate(setPlayer);
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
 // Display de 14 segmentos
 
 /** Caracteres que DSEG14 dibuja bien; el resto se convierte en celda vacía ("!"). */
@@ -271,7 +329,7 @@ function setSeg(el, text) {
 
 let marqueeOffset = 0;
 setInterval(() => {
-  const text = segSafe(R.outputName), cells = 10;
+  const text = segSafe(R.outputName), cells = 26;
   if (text.length <= cells) return setSeg($('outSeg'), text);
   const loop = text + '!!!!';
   marqueeOffset = (marqueeOffset + 1) % loop.length;
@@ -302,10 +360,6 @@ function renderStatus() {
 // Render
 
 function render() {
-  const b = R.selected;
-  setSeg($('bandSeg'), String(b + 1).padStart(2, '0'));
-  setSeg($('freqSeg'), D.bandSeg[b]);
-  setSeg($('gainSeg'), fmt(gainOf(b), true));
   $('power').classList.toggle('on', S.power);
   renderStatus();
   lamp('lampBypass', S.bypass);
@@ -536,10 +590,11 @@ function pushDemoEQ(stL, stR) {
 // Arranque
 
 async function init() {
-  await Promise.all([document.fonts.load('10px Michroma'), document.fonts.load('10px DSEG14')]);
+  await Promise.all([document.fonts.load('900 10px MADMicrogramma'), document.fonts.load('10px DSEG14')]);
   buildKeys();
   buildKnobs();
   buildFaders();
+  buildPlayer();
   $('power').addEventListener('click', () => setPower(!S.power));
   $('output').addEventListener('click', () => api.openDevices());
   $('lufsIBtn').addEventListener('click', () => { M.gated = []; M.lufsI = -Infinity; drawMeters(); });

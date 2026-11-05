@@ -24,12 +24,9 @@
         <div class="display">
           <div class="row r1">
             <button class="field link" id="output" title="Elegir dispositivos de Equalizer APO">
-              <label>OUTPUT ▾</label><span class="seg" id="outSeg" data-cells="10" data-size="20" data-lead="1"></span>
+              <label>OUTPUT ▾</label><span class="seg" id="outSeg" data-cells="26" data-size="20" data-lead="1"></span>
             </button>
             <span class="grow"></span>
-            <div class="field"><label>BAND</label><span class="seg" id="bandSeg" data-cells="2" data-size="20"></span></div>
-            <div class="field"><label>FREQ HZ</label><span class="seg" id="freqSeg" data-cells="5" data-size="20"></span></div>
-            <div class="field"><label>GAIN DB</label><span class="seg" id="gainSeg" data-cells="4" data-size="20"></span></div>
           </div>
           <div class="row r2">
             <div class="field"><label>LUFS M</label><span class="seg" id="lufsM" data-cells="4" data-size="15"></span></div>
@@ -75,6 +72,29 @@
       </div>
       <span class="grow"></span>
       <div class="knobs" id="knobs"></div>
+    </section>
+
+    <section class="player empty" id="player">
+      <div class="src"><span class="lamp" id="plSrc">SIN APP</span></div>
+      <div class="art"><svg viewBox="0 0 24 24"><path d="M9 18V6l10-2v12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="16.5" cy="16" r="2.5" fill="currentColor"/></svg></div>
+      <div class="tags">
+        <div class="t-title" id="plTitle">Sin reproductor</div>
+        <div class="t-artist" id="plArtist">Abre Spotify, Apple Music, YouTube Music, VLC…</div>
+        <div class="t-album" id="plAlbum">Los controles y las etiquetas aparecerán aquí</div>
+      </div>
+      <div class="transport">
+        <button class="tbtn" id="plPrev" title="Anterior"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM20 6v12L9.5 12z" fill="currentColor"/></svg></button>
+        <button class="tbtn big" id="plToggle" title="Reproducir / pausa"><svg viewBox="0 0 24 24"><path id="plToggleIcon" d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
+        <button class="tbtn" id="plNext" title="Siguiente"><svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM4 6l10.5 6L4 18z" fill="currentColor"/></svg></button>
+      </div>
+      <div class="progress">
+        <div class="times"><span class="seg" id="plElapsed" data-cells="5" data-size="13"></span><span class="dur" id="plRemain">--:--</span></div>
+        <div class="pbar"><i id="plBar" style="width:0%"></i></div>
+      </div>
+      <div class="vol" id="plVol">
+        <svg viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path d="M16 8.5a5 5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+        <div class="vbar"><i id="plVolBar" style="width:0%"></i></div>
+      </div>
     </section>
   </div>
 </div>

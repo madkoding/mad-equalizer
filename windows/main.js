@@ -14,7 +14,7 @@ const SHOT = (process.argv.find(a => a.startsWith('--screenshot=')) || '').slice
 // Fuera de Windows (o con --demo) no hay Equalizer APO: la configuración va a una carpeta local
 // y el audio es una señal de prueba. Sirve para desarrollar y revisar la interfaz.
 const DEMO = !WIN || process.argv.includes('--demo') || !!SHOT;
-const WIDTH = 1120, HEIGHT = 802;
+const WIDTH = 1120, HEIGHT = 690;
 const CONFIG_FILE = 'MAD.txt';
 const INCLUDE_LINE = `Include: ${CONFIG_FILE}`;
 
@@ -187,6 +187,8 @@ app.whenReady().then(() => {
     if (exe && fs.existsSync(exe)) return shell.openPath(exe);
     return 'NO DISPONIBLE';
   });
+  // Controles del reproductor: la detección real llega en un cambio aparte; por ahora no hacen nada.
+  ipcMain.handle('media:command', () => false);
   ipcMain.handle('sys:sound', () => (WIN ? shell.openExternal('ms-settings:sound') : null));
 
   createWindow();

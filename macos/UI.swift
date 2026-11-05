@@ -16,9 +16,10 @@ enum Palette {
 }
 
 extension Font {
-    /// Michroma: extendida al estilo Eurostile Wide / Microgramma. Es mucho más ancha que una
+    /// MAD Microgramma Black (derivada de Michroma, SIL OFL): extendida y pesada al estilo Microgramma Bold Extended.
+    /// Es mucho más ancha que una
     /// fuente normal, así que los tamaños se escalan para conservar la composición.
-    static func wide(_ size: CGFloat) -> Font { .custom("Michroma-Regular", size: size * 0.64) }
+    static func wide(_ size: CGFloat) -> Font { .custom("MADMicrogramma-Black", size: size * 0.64 * 0.99) }
     /// DSEG14 Classic Italic: display de 14 segmentos.
     static func seg(_ size: CGFloat) -> Font { .custom("DSEG14Classic-Italic", size: size) }
 }
@@ -179,19 +180,15 @@ struct DisplayPanel: View {
     }
 
     var body: some View {
-        let b = eq.selectedBand
         VStack(alignment: .leading, spacing: 9) {
             HStack(alignment: .top, spacing: 14) {
                 Button { eq.showOutputs.toggle() } label: {
-                    field("OUTPUT ▾", Marquee(text: segSafe(eq.outputName), cells: 10, size: 20))
+                    field("OUTPUT ▾", Marquee(text: segSafe(eq.outputName), cells: 26, size: 20))
                 }
                 .buttonStyle(.plain)
                 .help("Elegir salida de audio")
                 .popover(isPresented: $eq.showOutputs, arrowEdge: .bottom) { OutputList(eq: eq) }
                 Spacer(minLength: 0)
-                field("BAND", SegText(String(format: "%02d", b + 1), cells: 2, size: 20))
-                field("FREQ HZ", SegText(bandSeg[b], cells: 5, size: 20))
-                field("GAIN DB", SegText(String(format: "%+.1f", eq.gain(b)), cells: 4, size: 20))
             }
             HStack(alignment: .top, spacing: 12) {
                 field("LUFS M", SegText(segDB(meters.lufsM), cells: 4, size: 15))
@@ -564,7 +561,7 @@ struct BandColumn: View {
     let label: String
     let selected: Bool
     let onTouch: () -> Void
-    static let height: CGFloat = 295
+    static let height: CGFloat = 196
     static let width: CGFloat = 46
     static let spacing: CGFloat = 8
     /// Centro de la perilla dentro de la columna (LEDs 7 + 4 de separación + medio fader).
@@ -649,6 +646,7 @@ struct Knob: View {
     let label: String
     let readout: String
     var size: CGFloat = 54
+    var width: CGFloat = 74
     @StateObject private var drag = DragStart()
 
     var body: some View {
@@ -713,12 +711,12 @@ struct Knob: View {
             SegText(readout, cells: 4, size: 10)
             Silk(label, 10)
         }
-        .frame(width: 74)
+        .frame(width: width)
     }
 }
 
 struct KeyStyle: ButtonStyle {
-    var width: CGFloat = 66
+    var width: CGFloat = 68
     /// LED del botón: barra en su borde superior; encendida = ese botón está activo.
     var on = false
     var dim = false
@@ -728,8 +726,8 @@ struct KeyStyle: ButtonStyle {
             .font(.wide(10)).tracking(0.4)
             .foregroundStyle(Palette.silk.opacity(0.9))
             .lineLimit(1)
-            .padding(.top, 2)
-            .frame(width: width, height: 24)
+            .padding(.top, 3)
+            .frame(width: width, height: 28)
             .background(RoundedRectangle(cornerRadius: 3)
                 .fill(LinearGradient(colors: p ? [Color(white: 0.09), Color(white: 0.15)] : [Color(white: 0.25), Color(white: 0.11)],
                                      startPoint: .top, endPoint: .bottom)))
@@ -740,8 +738,8 @@ struct KeyStyle: ButtonStyle {
                     .overlay(RoundedRectangle(cornerRadius: 1.5).stroke(Color.black.opacity(0.6), lineWidth: 0.5))
                     .shadow(color: on ? Palette.led : .clear, radius: 4)
                     .frame(height: 3)
-                    .padding(.horizontal, 8)
-                    .padding(.top, 3)
+                    .padding(.horizontal, 9)
+                    .padding(.top, 4)
             }
             .shadow(color: .black.opacity(0.65), radius: p ? 0.5 : 2, y: p ? 0 : 2)
             .offset(y: p ? 1 : 0)
@@ -779,11 +777,11 @@ struct RowLabel: View {
     var body: some View {
         Text(text).font(.wide(10)).tracking(0.8)
             .foregroundStyle(Color.black.opacity(0.85))
-            .frame(width: 64, height: 18, alignment: .trailing)
+            .frame(width: 54, height: 18, alignment: .trailing)
             .padding(.trailing, 8)
             .background(UnevenRoundedRectangle(topLeadingRadius: 9, bottomLeadingRadius: 9)
                 .fill(Palette.led.opacity(0.85)))
-            .padding(.top, 3)
+            .padding(.top, 5)
     }
 }
 
@@ -868,6 +866,133 @@ struct Screw: View {
     }
 }
 
+// MARK: - Reproductor
+
+/// Barra inferior: etiquetas y controles de la app de música activa, o "sin reproductor".
+struct PlayerBar: View {
+    @ObservedObject var player: NowPlaying
+
+    private func mmss(_ t: Double) -> String {
+        let n = max(0, Int(t.rounded()))
+        return String(format: "%02d:%02d", n / 60, n % 60)
+    }
+
+    var body: some View {
+        let i = player.info
+        HStack(spacing: 16) {
+            Lamp(i?.app.uppercased() ?? "SIN APP", i != nil)
+                .frame(width: 58)
+            ZStack {
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(RadialGradient(colors: [Color(red: 0.13, green: 0.31, blue: 0.5), Color(red: 0.04, green: 0.09, blue: 0.17)],
+                                         center: UnitPoint(x: 0.3, y: 0.25), startRadius: 0, endRadius: 40))
+                Image(systemName: "music.note").font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(Palette.ledCore)
+                    .shadow(color: Palette.led, radius: 3)
+            }
+            .frame(width: 48, height: 48)
+            .overlay(RoundedRectangle(cornerRadius: 5).stroke(Color.black, lineWidth: 1.5))
+            .shadow(color: Palette.led.opacity(0.35), radius: 8)
+            .opacity(i == nil ? 0.35 : 1)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text(i?.title ?? "Sin reproductor").font(.wide(15)).tracking(0.4)
+                    .foregroundStyle(Palette.ledCore).shadow(color: Palette.led.opacity(0.55), radius: 4)
+                Text(i?.artist ?? "Abre Spotify, Apple Music, YouTube Music, VLC…").font(.wide(11.5)).tracking(0.6)
+                    .foregroundStyle(Palette.silk)
+                Text(i?.album ?? "Los controles y las etiquetas aparecerán aquí").font(.wide(10)).tracking(0.5)
+                    .foregroundStyle(Palette.led.opacity(0.6))
+            }
+            .lineLimit(1)
+            .frame(width: 270, alignment: .leading)
+            .opacity(i == nil ? 0.35 : 1)
+
+            HStack(spacing: 8) {
+                Button { player.command(.previous) } label: { Image(systemName: "backward.fill") }
+                    .buttonStyle(TransportStyle(width: 38, height: 28))
+                Button { player.command(.toggle) } label: { Image(systemName: i?.playing == true ? "pause.fill" : "play.fill") }
+                    .buttonStyle(TransportStyle(width: 52, height: 34, accent: true))
+                Button { player.command(.next) } label: { Image(systemName: "forward.fill") }
+                    .buttonStyle(TransportStyle(width: 38, height: 28))
+            }
+            .opacity(i == nil ? 0.35 : 1)
+
+            TimelineView(.periodic(from: .now, by: 0.5)) { ctx in
+                let pos: Double = {
+                    guard let i else { return 0 }
+                    let t = i.position + (i.playing ? ctx.date.timeIntervalSince(i.stamp) : 0)
+                    return i.duration > 0 ? min(i.duration, max(0, t)) : t
+                }()
+                VStack(spacing: 6) {
+                    HStack(alignment: .firstTextBaseline) {
+                        SegText(i == nil ? "!!!!!" : mmss(pos), cells: 5, size: 13)
+                        Spacer(minLength: 0)
+                        Text(i != nil && i!.duration > 0 ? "-" + mmss(i!.duration - pos) : "--:--")
+                            .font(.wide(10)).tracking(0.6).foregroundStyle(Palette.led.opacity(0.6))
+                    }
+                    SegBar(fraction: i != nil && i!.duration > 0 ? pos / i!.duration : 0)
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .opacity(i == nil ? 0.35 : 1)
+
+            HStack(spacing: 8) {
+                Image(systemName: "speaker.wave.2.fill").font(.system(size: 11)).foregroundStyle(Palette.led.opacity(0.8))
+                SegBar(fraction: i?.volume ?? 0)
+            }
+            .frame(width: 118)
+            .opacity(i?.volume == nil ? 0 : 1)
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 70)
+        .background(RoundedRectangle(cornerRadius: 10)
+            .fill(LinearGradient(colors: [Color(red: 0.016, green: 0.03, blue: 0.055), Color(red: 0.035, green: 0.07, blue: 0.118)],
+                                 startPoint: .top, endPoint: .bottom)
+                .shadow(.inner(color: .black, radius: 6, y: 2))))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.black.opacity(0.9), lineWidth: 1.5))
+    }
+}
+
+/// Barra de progreso o volumen con segmentos de LED.
+struct SegBar: View {
+    let fraction: Double
+    var body: some View {
+        Canvas { ctx, size in
+            let seg: CGFloat = 5, gap: CGFloat = 2
+            let n = max(1, Int((size.width + gap) / (seg + gap)))
+            let lit = Int((min(max(fraction, 0), 1) * Double(n)).rounded())
+            var on = Path(), off = Path()
+            for k in 0..<n {
+                let r = CGRect(x: CGFloat(k) * (seg + gap), y: 0, width: seg, height: size.height)
+                if k < lit { on.addRect(r) } else { off.addRect(r) }
+            }
+            ctx.fill(off, with: .color(Palette.ledOff))
+            ctx.glow(on, Palette.led, radius: 4)
+        }
+        .frame(height: 7)
+    }
+}
+
+struct TransportStyle: ButtonStyle {
+    var width: CGFloat
+    var height: CGFloat
+    var accent = false
+    func makeBody(configuration: Configuration) -> some View {
+        let p = configuration.isPressed
+        return configuration.label
+            .font(.system(size: accent ? 16 : 12, weight: .bold))
+            .foregroundStyle(accent ? Palette.ledCore : Palette.silk.opacity(0.9))
+            .shadow(color: accent ? Palette.led : .clear, radius: 3)
+            .frame(width: width, height: height)
+            .background(RoundedRectangle(cornerRadius: 4)
+                .fill(LinearGradient(colors: p ? [Color(white: 0.09), Color(white: 0.15)] : [Color(white: 0.25), Color(white: 0.11)],
+                                     startPoint: .top, endPoint: .bottom)))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(Color.black.opacity(0.9), lineWidth: 1))
+            .shadow(color: .black.opacity(0.65), radius: p ? 0.5 : 2, y: p ? 0 : 2)
+            .offset(y: p ? 1 : 0)
+    }
+}
+
 // MARK: - Ventana principal
 
 private struct CenterHeightKey: PreferenceKey {
@@ -878,8 +1003,9 @@ private struct CenterHeightKey: PreferenceKey {
 struct RootView: View {
     @StateObject private var eq = EQModel()
     @StateObject private var meters = MeterModel()
-    @State private var vuHeight: CGFloat = 159
-    static let size = CGSize(width: 1120, height: 772)
+    @StateObject private var player = NowPlaying()
+    @State private var vuHeight: CGFloat = 153
+    static let size = CGSize(width: 1120, height: 660)
     /// Franja superior de la ventana (zona de la barra de título oculta): lleva la serigrafía.
     static let strip: CGFloat = 28
     /// Lienzo completo de la ventana a escala 100 %.
@@ -917,14 +1043,15 @@ struct RootView: View {
                 Spacer()
                 WoodCheek().frame(width: 24).scaleEffect(x: -1)
             }
-            VStack(spacing: 14) {
+            VStack(spacing: 12) {
                 header
                 faderWell
                 controls
+                PlayerBar(player: player)
             }
             .padding(.horizontal, 46)
             .padding(.top, 14)
-            .padding(.bottom, 16)
+            .padding(.bottom, 14)
             screws
         }
         .frame(width: Self.size.width, height: Self.size.height)
@@ -938,9 +1065,9 @@ struct RootView: View {
         HStack(alignment: .top, spacing: 18) {
             VUMeterView(meters: meters, left: true).frame(width: 230, height: vuHeight)
             VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .firstTextBaseline, spacing: 12) {
+                HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Text("MAD").font(.wide(36)).tracking(1).foregroundStyle(Palette.silk)
-                    Text("EQUALIZER").font(.wide(12)).tracking(3).foregroundStyle(Palette.silk.opacity(0.55))
+                    Text("EQUALIZER").font(.wide(18)).tracking(1).foregroundStyle(Palette.silk)
                     Spacer()
                     Text("16 BAND").font(.wide(12)).tracking(2).foregroundStyle(Palette.led.opacity(0.8))
                 }
@@ -986,23 +1113,22 @@ struct RootView: View {
     }
 
     private func row<C: View>(_ label: String, @ViewBuilder _ content: () -> C) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 4) {
             RowLabel(label)
             content()
         }
     }
 
     private var controls: some View {
-        HStack(alignment: .top, spacing: 16) {
+        HStack(alignment: .center, spacing: 14) {
             PowerButton(on: eq.running) { eq.togglePower() }
-                .padding(.top, 6)
             VStack(spacing: 8) {
                 LEDKey("BYPASS", on: eq.bypass) { eq.bypass.toggle() }
                 LEDKey("SPECTRUM", on: eq.spectrumMode) { eq.spectrumMode.toggle() }
             }
-            Rectangle().fill(Color.black.opacity(0.6)).frame(width: 1, height: 150)
+            Rectangle().fill(Color.black.opacity(0.6)).frame(width: 1, height: 124)
                 .overlay(alignment: .trailing) { Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1).offset(x: 1) }
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 6) {
                 row("PRESET") {
                     ForEach(presets, id: \.name) { p in
                         LEDKey(p.name, on: eq.activePreset == p.name) { eq.applyPreset(p) }
@@ -1037,26 +1163,22 @@ struct RootView: View {
                 }
             }
             Spacer(minLength: 0)
-            VStack(spacing: 6) {
-                HStack(spacing: 0) {
-                    Knob(value: $eq.preampDB, range: -12...12, defaultValue: 0, step: 0.5,
-                         label: "PRE-AMP", readout: String(format: "%+.1f", eq.preampDB))
-                    Knob(value: $eq.level, range: 0...1.5, defaultValue: 1, step: 0.01,
-                         label: "LEVEL", readout: "\(Int((eq.level * 100).rounded()))")
-                    Knob(value: Binding(get: { log10(eq.lowCutHz) }, set: { eq.lowCutHz = pow(10, $0) }),
-                         range: log10(20)...log10(200), defaultValue: log10(80), step: 0.005,
-                         label: "LOW CUT", readout: "\(Int(eq.lowCutHz.rounded()))")
-                }
-                HStack(spacing: 0) {
-                    Knob(value: $eq.limitDB, range: -12...0, defaultValue: -0.5, step: 0.5,
-                         label: "LIMIT", readout: String(format: "%.1f", eq.limitDB))
-                    // Ancho estéreo (mid/side): 0 % = mono, 100 % = original, 200 % = lados al doble para separar instrumentos.
-                    Knob(value: $eq.width, range: 0...2, defaultValue: 1, step: 0.01,
-                         label: "WIDTH", readout: "\(Int((eq.width * 100).rounded()))")
-                    Spacer().frame(width: 74)
-                }
+            HStack(spacing: 0) {
+                Knob(value: $eq.preampDB, range: -12...12, defaultValue: 0, step: 0.5,
+                     label: "PRE-AMP", readout: String(format: "%+.1f", eq.preampDB), width: 58)
+                Knob(value: $eq.level, range: 0...1.5, defaultValue: 1, step: 0.01,
+                     label: "LEVEL", readout: "\(Int((eq.level * 100).rounded()))", width: 58)
+                Knob(value: Binding(get: { log10(eq.lowCutHz) }, set: { eq.lowCutHz = pow(10, $0) }),
+                     range: log10(20)...log10(200), defaultValue: log10(80), step: 0.005,
+                     label: "LOW CUT", readout: "\(Int(eq.lowCutHz.rounded()))", width: 58)
+                Knob(value: $eq.limitDB, range: -12...0, defaultValue: -0.5, step: 0.5,
+                     label: "LIMIT", readout: String(format: "%.1f", eq.limitDB), width: 58)
+                // Ancho estéreo (mid/side): 0 % = mono, 100 % = original, 200 % = lados al doble para separar instrumentos.
+                Knob(value: $eq.width, range: 0...2, defaultValue: 1, step: 0.01,
+                     label: "WIDTH", readout: "\(Int((eq.width * 100).rounded()))", width: 58)
             }
         }
+        .frame(height: 134)
     }
 
     private var screws: some View {

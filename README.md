@@ -82,6 +82,7 @@ MIT, see [`LICENSE`](LICENSE). Third-party components keep their own licenses (b
 ## Third-party components
 
 - **Michroma** font, © The Michroma Project Authors, and **DSEG** font, © keshikan: SIL Open Font License 1.1 (`licenses/`).
+- **MAD Microgramma Black** (the UI typeface) is a heavier derivative of Michroma, generated with `tools/embolden_font.py` and distributed under the same SIL OFL 1.1.
 - **Equalizer APO** (Windows installer only), © Jonas Thedering: GPL v2. Not included in this repository; the build downloads the official installer. See `windows/installer/THIRD-PARTY-NOTICES.txt`.
 - **Electron**: MIT.
 
