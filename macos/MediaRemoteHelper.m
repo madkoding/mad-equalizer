@@ -66,7 +66,15 @@ static void poll(dispatch_queue_t q) {
                 if (pid <= 0 || title.length == 0) { emit(nil); return; }
                 id ts = d[@"kMRMediaRemoteNowPlayingInfoTimestamp"];
                 double stamp = [ts isKindOfClass:NSDate.class] ? [ts timeIntervalSince1970] : 0;
-                emit(@{
+                // La carátula pesa: sólo se manda (en base64) cuando cambia; si no, basta su clave.
+                static NSString *lastArt = nil;
+                id art = d[@"kMRMediaRemoteNowPlayingInfoArtworkData"];
+                NSData *artData = [art isKindOfClass:NSData.class] ? art : nil;
+                NSString *artKey = [NSString stringWithFormat:@"%@|%@|%@|%lu", title,
+                                    str(d[@"kMRMediaRemoteNowPlayingInfoArtist"]),
+                                    str(d[@"kMRMediaRemoteNowPlayingInfoAlbum"]), (unsigned long)artData.length];
+                NSMutableDictionary *out = [@{
+                    @"artworkKey": artKey,
                     @"pid": @(pid),
                     @"playing": @(playing ? YES : NO),
                     @"title": title,
@@ -76,7 +84,12 @@ static void poll(dispatch_queue_t q) {
                     @"elapsed": @(num(d[@"kMRMediaRemoteNowPlayingInfoElapsedTime"])),
                     @"rate": @(num(d[@"kMRMediaRemoteNowPlayingInfoPlaybackRate"])),
                     @"timestamp": @(stamp),
-                });
+                } mutableCopy];
+                if (![artKey isEqualToString:lastArt]) {
+                    lastArt = artKey;
+                    out[@"artwork"] = artData ? [artData base64EncodedStringWithOptions:0] : @"";
+                }
+                emit(out);
             });
         });
     });
