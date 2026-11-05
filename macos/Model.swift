@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import CoreAudio
+import CoreGraphics
 
 // Bandas ISO de 2/3 de octava
 let bandFreqs: [Double] = [20, 31.5, 50, 80, 125, 200, 315, 500, 800, 1250, 2000, 3150, 5000, 8000, 12500, 20000]
@@ -660,20 +661,44 @@ final class NowPlaying: ObservableObject {
         info = audioSource()
     }
 
-    /// App con salida de audio activa, sin metadatos.
+    /// App regular a la que pertenece un proceso de audio. Las apps Electron (Tidal, Spotify…) y los
+    /// navegadores suenan desde procesos auxiliares con ID tipo `com.tidal.desktop.helper.Renderer`:
+    /// se va recortando el ID hasta dar con la app principal.
+    private func owner(of bundleID: String) -> NSRunningApplication? {
+        var parts = bundleID.split(separator: ".").map(String.init)
+        while parts.count >= 2 {
+            let id = parts.joined(separator: ".")
+            if let app = NSRunningApplication.runningApplications(withBundleIdentifier: id)
+                .first(where: { $0.activationPolicy == .regular }) { return app }
+            parts.removeLast()
+        }
+        return nil
+    }
+
+    /// Título de la ventana de la app ("Canción - Artista"); macOS sólo lo entrega con permiso de
+    /// Grabación de pantalla, así que es opcional.
+    private func windowTitle(pid: pid_t) -> String? {
+        guard let list = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return nil }
+        for w in list where (w[kCGWindowOwnerPID as String] as? pid_t) == pid {
+            if let t = w[kCGWindowName as String] as? String, t.contains(" - ") { return t }
+        }
+        return nil
+    }
+
+    /// App con salida de audio activa; con metadatos sólo si se pueden deducir de su ventana.
     private func audioSource() -> MediaInfo? {
         let own = Bundle.main.bundleIdentifier
         for p in audioProcesses() where p.isOutputting && p.bundleID != own {
-            // Los procesos auxiliares (WebKit, Helper…) se atribuyen a su app principal.
-            var id = p.bundleID
-            if running(id) == false, let r = id.range(of: ".", options: .backwards), id.contains("helper") || id.contains("Helper") {
-                id = String(id[..<r.lowerBound])
+            guard let app = owner(of: p.bundleID), let name = app.localizedName,
+                  app.bundleIdentifier != own else { continue }
+            var title = "Reproduciendo", artist = ""
+            if let t = windowTitle(pid: app.processIdentifier),
+               let r = t.range(of: " - ", options: .backwards) {
+                title = String(t[..<r.lowerBound]); artist = String(t[r.upperBound...])
             }
-            guard let app = NSRunningApplication.runningApplications(withBundleIdentifier: id).first,
-                  app.activationPolicy == .regular,
-                  let name = app.localizedName else { continue }
-            return MediaInfo(app: name, title: "Reproduciendo", artist: "", album: "",
-                             position: 0, duration: 0, playing: true, volume: nil, bundle: id)
+            return MediaInfo(app: name, title: title, artist: artist, album: "",
+                             position: 0, duration: 0, playing: true, volume: nil,
+                             bundle: app.bundleIdentifier ?? p.bundleID)
         }
         return nil
     }
