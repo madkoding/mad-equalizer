@@ -2,6 +2,7 @@ import SwiftUI
 import AppKit
 import CoreAudio
 import CoreGraphics
+import ApplicationServices
 
 // Bandas ISO de 2/3 de octava
 let bandFreqs: [Double] = [20, 31.5, 50, 80, 125, 200, 315, 500, 800, 1250, 2000, 3150, 5000, 8000, 12500, 20000]
@@ -591,6 +592,7 @@ final class NowPlaying: ObservableObject {
     private var rich: MediaInfo?       // notificaciones de Spotify / Música
     private var remote: MediaInfo?     // MediaRemote
     private var timer: Timer?
+    private var askedAccessibility = false
     private var observers: [NSObjectProtocol] = []
     private let demo = ProcessInfo.processInfo.environment["MAD_DEMO_PLAYER"] != nil
 
@@ -675,9 +677,34 @@ final class NowPlaying: ObservableObject {
         return nil
     }
 
-    /// Título de la ventana de la app ("Canción - Artista"); macOS sólo lo entrega con permiso de
-    /// Grabación de pantalla, así que es opcional.
+    /// Título de la ventana de la app ("Canción - Artista"). Se prueba primero con Accesibilidad
+    /// (permiso más acotado) y, si ya está concedido, con la lista de ventanas (Grabación de pantalla).
     private func windowTitle(pid: pid_t) -> String? {
+        axTitle(pid: pid) ?? cgTitle(pid: pid)
+    }
+
+    private func axTitle(pid: pid_t) -> String? {
+        if !AXIsProcessTrusted() {
+            if !askedAccessibility {
+                askedAccessibility = true
+                let key = kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String
+                _ = AXIsProcessTrustedWithOptions([key: true] as CFDictionary)
+            }
+            return nil
+        }
+        let app = AXUIElementCreateApplication(pid)
+        var value: CFTypeRef?
+        guard AXUIElementCopyAttributeValue(app, kAXWindowsAttribute as CFString, &value) == .success,
+              let windows = value as? [AXUIElement] else { return nil }
+        for w in windows {
+            var t: CFTypeRef?
+            if AXUIElementCopyAttributeValue(w, kAXTitleAttribute as CFString, &t) == .success,
+               let title = t as? String, title.contains(" - ") { return title }
+        }
+        return nil
+    }
+
+    private func cgTitle(pid: pid_t) -> String? {
         guard let list = CGWindowListCopyWindowInfo([.optionAll, .excludeDesktopElements], kCGNullWindowID) as? [[String: Any]] else { return nil }
         for w in list where (w[kCGWindowOwnerPID as String] as? pid_t) == pid {
             if let t = w[kCGWindowName as String] as? String, t.contains(" - ") { return t }
