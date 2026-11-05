@@ -6,6 +6,7 @@ const path = require('path');
 const fs = require('fs');
 const { execFile } = require('child_process');
 const { pathToFileURL } = require('url');
+const media = require('./media');
 
 const WIN = process.platform === 'win32';
 // --screenshot=<archivo.png>: abre la app en modo demo, elige un preset, guarda una captura y sale.
@@ -187,9 +188,20 @@ app.whenReady().then(() => {
     if (exe && fs.existsSync(exe)) return shell.openPath(exe);
     return 'NO DISPONIBLE';
   });
-  // Controles del reproductor: la detección real llega en un cambio aparte; por ahora no hacen nada.
-  ipcMain.handle('media:command', () => false);
+  // Reproductor: en Windows se lee SMTC; en modo demo la interfaz muestra una pista de ejemplo.
+  ipcMain.handle('media:command', (_e, cmd) => (WIN && !DEMO ? media.command(String(cmd)) : false));
   ipcMain.handle('sys:sound', () => (WIN ? shell.openExternal('ms-settings:sound') : null));
+
+  if (WIN && !DEMO) {
+    let current = null;
+    const stop = media.watch((info) => {
+      current = info;
+      for (const w of BrowserWindow.getAllWindows()) w.webContents.send('media:update', info);
+    });
+    app.on('browser-window-created', (_e, w) =>
+      w.webContents.on('did-finish-load', () => w.webContents.send('media:update', current)));
+    app.on('will-quit', stop);
+  }
 
   createWindow();
 });
