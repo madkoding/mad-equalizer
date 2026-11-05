@@ -350,7 +350,7 @@ struct VUMeter: View {
                        at: CGPoint(x: face.maxX - 22, y: face.maxY - 11))
 
                 var needle = Path()
-                needle.move(to: pt(position, face.height * 0.3))
+                needle.move(to: pt(position, 0))
                 needle.addLine(to: pt(position, R + 12))
                 l.drawLayer { s in
                     s.addFilter(.shadow(color: .black.opacity(0.35), radius: 1.5, x: 2, y: 2))
@@ -400,57 +400,6 @@ struct VUMeterView: View {
     var body: some View {
         VUMeter(position: left ? meters.left : meters.right, channel: left ? "LEFT" : "RIGHT",
                 peak: left ? meters.peakL : meters.peakR, over: left ? meters.overL : meters.overR)
-    }
-}
-
-// MARK: - Goniómetro
-
-struct ScopeView: View {
-    @ObservedObject var meters: MeterModel
-    var body: some View {
-        Canvas { ctx, size in
-            Bezel.draw(ctx, size)
-            let screen = CGRect(x: 9, y: 9, width: size.width - 18, height: size.height - 18)
-            let sp = Path(roundedRect: screen, cornerRadius: 5)
-            ctx.fill(sp, with: .radialGradient(Gradient(colors: [Color(red: 0.03, green: 0.08, blue: 0.14),
-                                                                 Color(red: 0.01, green: 0.02, blue: 0.04)]),
-                                               center: CGPoint(x: screen.midX, y: screen.midY),
-                                               startRadius: 0, endRadius: screen.width * 0.7))
-            ctx.drawLayer { l in
-                l.clip(to: sp)
-                let c = CGPoint(x: screen.midX, y: screen.midY + 4)
-                let R = min(screen.width, screen.height) * 0.5 - 14
-                let d = R * 0.7071
-                var g = Path()
-                g.move(to: CGPoint(x: c.x - R, y: c.y)); g.addLine(to: CGPoint(x: c.x + R, y: c.y))
-                g.move(to: CGPoint(x: c.x, y: c.y - R)); g.addLine(to: CGPoint(x: c.x, y: c.y + R))
-                g.move(to: CGPoint(x: c.x - d, y: c.y - d)); g.addLine(to: CGPoint(x: c.x + d, y: c.y + d))
-                g.move(to: CGPoint(x: c.x + d, y: c.y - d)); g.addLine(to: CGPoint(x: c.x - d, y: c.y + d))
-                l.stroke(g, with: .color(Palette.led.opacity(0.18)), lineWidth: 0.7)
-                l.stroke(Path(ellipseIn: CGRect(x: c.x - R, y: c.y - R, width: 2 * R, height: 2 * R)),
-                         with: .color(Palette.led.opacity(0.12)), lineWidth: 0.7)
-                let lab = Palette.led.opacity(0.55)
-                l.draw(Text("M").font(.wide(9)).foregroundColor(lab), at: CGPoint(x: c.x + 7, y: c.y - R + 4))
-                l.draw(Text("L").font(.wide(9)).foregroundColor(lab), at: CGPoint(x: c.x - d - 7, y: c.y - d - 2))
-                l.draw(Text("R").font(.wide(9)).foregroundColor(lab), at: CGPoint(x: c.x + d + 7, y: c.y - d - 2))
-                l.draw(Text("S").font(.wide(9)).foregroundColor(lab), at: CGPoint(x: c.x + R + 6, y: c.y - 6))
-                l.draw(Text("GONIOMETER").font(.wide(8)).tracking(1).foregroundColor(lab),
-                       at: CGPoint(x: screen.minX + 44, y: screen.maxY - 9))
-
-                var dots = Path()
-                for p in meters.scope {
-                    let x = c.x + CGFloat(max(min(p.x, 1.15), -1.15)) * R
-                    let y = c.y - CGFloat(max(min(p.y, 1.15), -1.15)) * R
-                    dots.addRect(CGRect(x: x - 0.7, y: y - 0.7, width: 1.4, height: 1.4))
-                }
-                l.glow(dots, radius: 3)
-                l.fill(Path(screen), with: .linearGradient(Gradient(colors: [.white.opacity(0.08), .white.opacity(0)]),
-                                                           startPoint: CGPoint(x: screen.minX, y: screen.minY),
-                                                           endPoint: CGPoint(x: screen.minX + screen.width * 0.35, y: screen.midY)))
-            }
-            ctx.stroke(sp, with: .color(.black), lineWidth: 1.5)
-        }
-        .shadow(color: Palette.led.opacity(0.25), radius: 14)
     }
 }
 
@@ -615,7 +564,7 @@ struct BandColumn: View {
     let label: String
     let selected: Bool
     let onTouch: () -> Void
-    static let height: CGFloat = 250
+    static let height: CGFloat = 295
     static let width: CGFloat = 46
     static let spacing: CGFloat = 8
     /// Centro de la perilla dentro de la columna (LEDs 7 + 4 de separación + medio fader).
@@ -768,32 +717,31 @@ struct Knob: View {
     }
 }
 
-struct LEDDot: View {
-    let on: Bool
-    var dim = false
-    var body: some View {
-        Circle().fill(on ? Palette.ledCore : dim ? Palette.led.opacity(0.35) : Palette.ledOff)
-            .frame(width: 6, height: 6)
-            .overlay(Circle().stroke(Color.black.opacity(0.6), lineWidth: 0.5))
-            .shadow(color: on ? Palette.led : .clear, radius: 4)
-    }
-}
-
 struct KeyStyle: ButtonStyle {
     var width: CGFloat = 66
+    /// LED del botón: barra en su borde superior; encendida = ese botón está activo.
+    var on = false
+    var dim = false
     func makeBody(configuration: Configuration) -> some View {
         let p = configuration.isPressed
         return configuration.label
             .font(.wide(10)).tracking(0.4)
             .foregroundStyle(Palette.silk.opacity(0.9))
             .lineLimit(1)
-            .frame(width: width, height: 22)
+            .padding(.top, 2)
+            .frame(width: width, height: 24)
             .background(RoundedRectangle(cornerRadius: 3)
                 .fill(LinearGradient(colors: p ? [Color(white: 0.09), Color(white: 0.15)] : [Color(white: 0.25), Color(white: 0.11)],
                                      startPoint: .top, endPoint: .bottom)))
             .overlay(RoundedRectangle(cornerRadius: 3).strokeBorder(Color.black.opacity(0.9), lineWidth: 1))
             .overlay(alignment: .top) {
-                Rectangle().fill(Color.white.opacity(p ? 0.03 : 0.13)).frame(height: 1).padding(.horizontal, 3).padding(.top, 1)
+                RoundedRectangle(cornerRadius: 1.5)
+                    .fill(on ? Palette.ledCore : dim ? Palette.led.opacity(0.35) : Palette.ledOff)
+                    .overlay(RoundedRectangle(cornerRadius: 1.5).stroke(Color.black.opacity(0.6), lineWidth: 0.5))
+                    .shadow(color: on ? Palette.led : .clear, radius: 4)
+                    .frame(height: 3)
+                    .padding(.horizontal, 8)
+                    .padding(.top, 3)
             }
             .shadow(color: .black.opacity(0.65), radius: p ? 0.5 : 2, y: p ? 0 : 2)
             .offset(y: p ? 1 : 0)
@@ -809,10 +757,7 @@ struct LEDKey: View {
         self.title = title; self.on = on; self.dim = dim; self.action = action
     }
     var body: some View {
-        VStack(spacing: 4) {
-            LEDDot(on: on, dim: dim)
-            Button(title, action: action).buttonStyle(KeyStyle())
-        }
+        Button(title, action: action).buttonStyle(KeyStyle(on: on, dim: dim))
     }
 }
 
@@ -838,7 +783,7 @@ struct RowLabel: View {
             .padding(.trailing, 8)
             .background(UnevenRoundedRectangle(topLeadingRadius: 9, bottomLeadingRadius: 9)
                 .fill(Palette.led.opacity(0.85)))
-            .padding(.top, 10)
+            .padding(.top, 3)
     }
 }
 
@@ -925,9 +870,15 @@ struct Screw: View {
 
 // MARK: - Ventana principal
 
+private struct CenterHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) { value = max(value, nextValue()) }
+}
+
 struct RootView: View {
     @StateObject private var eq = EQModel()
     @StateObject private var meters = MeterModel()
+    @State private var vuHeight: CGFloat = 159
     static let size = CGSize(width: 1120, height: 772)
     /// Franja superior de la ventana (zona de la barra de título oculta): lleva la serigrafía.
     static let strip: CGFloat = 28
@@ -985,7 +936,7 @@ struct RootView: View {
 
     private var header: some View {
         HStack(alignment: .top, spacing: 18) {
-            VUMeterView(meters: meters, left: true).frame(width: 230, height: 204)
+            VUMeterView(meters: meters, left: true).frame(width: 230, height: vuHeight)
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 12) {
                     Text("MAD").font(.wide(36)).tracking(1).foregroundStyle(Palette.silk)
@@ -995,11 +946,13 @@ struct RootView: View {
                 }
                 DisplayPanel(eq: eq, meters: meters)
             }
-            Group {
-                if eq.scopeMode { ScopeView(meters: meters) } else { VUMeterView(meters: meters, left: false) }
-            }
-            .frame(width: 230, height: 204)
+            // Los VU miden lo mismo que este panel (marca + display) para quedar alineados.
+            .background(GeometryReader { g in
+                Color.clear.preference(key: CenterHeightKey.self, value: g.size.height)
+            })
+            VUMeterView(meters: meters, left: false).frame(width: 230, height: vuHeight)
         }
+        .onPreferenceChange(CenterHeightKey.self) { if $0 > 100 { vuHeight = $0 } }
     }
 
     private var faderWell: some View {
@@ -1049,7 +1002,7 @@ struct RootView: View {
             }
             Rectangle().fill(Color.black.opacity(0.6)).frame(width: 1, height: 150)
                 .overlay(alignment: .trailing) { Rectangle().fill(Color.white.opacity(0.06)).frame(width: 1).offset(x: 1) }
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 8) {
                 row("PRESET") {
                     ForEach(presets, id: \.name) { p in
                         LEDKey(p.name, on: eq.activePreset == p.name) { eq.applyPreset(p) }
@@ -1078,8 +1031,6 @@ struct RootView: View {
                     LEDKey("AUTO GAIN", on: eq.autoGain) { eq.autoGain.toggle() }
                         .help("Compensa el volumen para comparar curvas a igual loudness")
                     LEDKey("CURVE", on: eq.showCurve) { eq.showCurve.toggle() }
-                    LEDKey("SCOPE", on: eq.scopeMode) { eq.scopeMode.toggle() }
-                        .help("Goniómetro en lugar del VU derecho")
                     LEDKey("APPS", on: !eq.excludedApps.isEmpty) { eq.showApps.toggle() }
                         .help("Excluir apps del ecualizador")
                         .popover(isPresented: $eq.showApps, arrowEdge: .top) { AppsList(eq: eq) }
@@ -1092,13 +1043,17 @@ struct RootView: View {
                          label: "PRE-AMP", readout: String(format: "%+.1f", eq.preampDB))
                     Knob(value: $eq.level, range: 0...1.5, defaultValue: 1, step: 0.01,
                          label: "LEVEL", readout: "\(Int((eq.level * 100).rounded()))")
-                }
-                HStack(spacing: 0) {
                     Knob(value: Binding(get: { log10(eq.lowCutHz) }, set: { eq.lowCutHz = pow(10, $0) }),
                          range: log10(20)...log10(200), defaultValue: log10(80), step: 0.005,
                          label: "LOW CUT", readout: "\(Int(eq.lowCutHz.rounded()))")
+                }
+                HStack(spacing: 0) {
                     Knob(value: $eq.limitDB, range: -12...0, defaultValue: -0.5, step: 0.5,
                          label: "LIMIT", readout: String(format: "%.1f", eq.limitDB))
+                    // Ancho estéreo (mid/side): 0 % = mono, 100 % = original, 200 % = lados al doble para separar instrumentos.
+                    Knob(value: $eq.width, range: 0...2, defaultValue: 1, step: 0.01,
+                         label: "WIDTH", readout: "\(Int((eq.width * 100).rounded()))")
+                    Spacer().frame(width: 74)
                 }
             }
         }

@@ -64,6 +64,8 @@ final class EQModel: ObservableObject {
     @Published var filters: Set<String> { didSet { changed() } }
     @Published var lowCutHz: Float { didSet { changed() } }
     @Published var limitDB: Float { didSet { changed() } }
+    /// Ancho estéreo (mid/side): 0 = mono, 1 = original, 2 = lados al doble.
+    @Published var width: Float { didSet { changed() } }
     @Published var propQ: Bool { didSet { changed() } }
     @Published var autoGain: Bool { didSet { changed() } }
     @Published var bypass = false { didSet { changed() } }
@@ -71,7 +73,6 @@ final class EQModel: ObservableObject {
     @Published private(set) var channelMode: ChannelMode = .link
     @Published var spectrumMode: Bool { didSet { save() } }
     @Published var showCurve: Bool { didSet { save() } }
-    @Published var scopeMode: Bool { didSet { save() } }
     @Published private(set) var excludedApps: Set<String> { didSet { save() } }
     @Published private(set) var memories: [Snapshot?] { didSet { save() } }
     @Published var selectedBand = 8
@@ -108,12 +109,12 @@ final class EQModel: ObservableObject {
         filters = Set(d.stringArray(forKey: "filters16") ?? [])
         lowCutHz = d.object(forKey: "lowCutHz") == nil ? 80 : d.float(forKey: "lowCutHz")
         limitDB = d.object(forKey: "limitDB") == nil ? -0.5 : d.float(forKey: "limitDB")
+        width = d.object(forKey: "width") == nil ? 1 : min(max(d.float(forKey: "width"), 0), 2)
         propQ = d.bool(forKey: "propQ")
         autoGain = d.bool(forKey: "autoGain")
         rangeDB = d.float(forKey: "rangeDB") == 6 ? 6 : 12
         spectrumMode = d.object(forKey: "spectrumMode") == nil ? true : d.bool(forKey: "spectrumMode")
         showCurve = d.object(forKey: "showCurve") == nil ? true : d.bool(forKey: "showCurve")
-        scopeMode = d.bool(forKey: "scopeMode")
         excludedApps = Set(d.stringArray(forKey: "excludedApps") ?? [])
         memories = (d.data(forKey: "memories")).flatMap { try? JSONDecoder().decode([Snapshot?].self, from: $0) } ?? [nil, nil, nil, nil]
         quiet = false
@@ -325,7 +326,7 @@ final class EQModel: ObservableObject {
             autoGainDB = 0
         }
         engine.dsp.update(left: sl, right: sr, preampDB: preampDB, level: level, autoGainDB: autoGainDB,
-                          limitDB: limitDB, mono: filters.contains("mono"), bypass: bypass)
+                          limitDB: limitDB, mono: filters.contains("mono"), width: width, bypass: bypass)
     }
 
     private func save() {
@@ -337,12 +338,12 @@ final class EQModel: ObservableObject {
         defaults.set(Array(filters), forKey: "filters16")
         defaults.set(lowCutHz, forKey: "lowCutHz")
         defaults.set(limitDB, forKey: "limitDB")
+        defaults.set(width, forKey: "width")
         defaults.set(propQ, forKey: "propQ")
         defaults.set(autoGain, forKey: "autoGain")
         defaults.set(rangeDB, forKey: "rangeDB")
         defaults.set(spectrumMode, forKey: "spectrumMode")
         defaults.set(showCurve, forKey: "showCurve")
-        defaults.set(scopeMode, forKey: "scopeMode")
         defaults.set(Array(excludedApps), forKey: "excludedApps")
         defaults.set(try? JSONEncoder().encode(memories), forKey: "memories")
     }
@@ -430,7 +431,6 @@ final class MeterModel: ObservableObject {
     @Published var crestDB: Double = 0
     @Published var corr: Double = 0
     @Published var grDB: Double = 0
-    @Published var scope: [CGPoint] = []
 
     private var timer: Timer?
     private var tick = 0
@@ -441,7 +441,6 @@ final class MeterModel: ObservableObject {
     private var gated: [Double] = []
     private var peakWin: [Double] = []
     private var msWin: [Double] = []
-    private var scopeGain = 1.0
 
     func attach(_ eq: EQModel) {
         guard timer == nil else { return }
@@ -536,25 +535,6 @@ final class MeterModel: ObservableObject {
             lufsM = -.infinity; lufsS = -.infinity
         }
         if tick % 10 == 0 { lufsI = integrated() }
-
-        // Goniómetro con control automático de ganancia
-        if eq.scopeMode && run {
-            let n = DSP.scopeSize, start = dsp.scopeIndex
-            var pts = [CGPoint](), amp = 0.0
-            pts.reserveCapacity(n)
-            for k in 0..<n {
-                let idx = (start + k) % n
-                let x = Double(dsp.scopeX[idx]), y = Double(dsp.scopeY[idx])
-                amp += x * x + y * y
-                pts.append(CGPoint(x: x, y: y))
-            }
-            amp = sqrt(amp / Double(n))
-            scopeGain += (min(0.3 / max(amp, 0.002), 60) - scopeGain) * 0.1
-            let k = scopeGain
-            scope = pts.map { CGPoint(x: $0.x * k, y: $0.y * k) }
-        } else if !scope.isEmpty {
-            scope = []
-        }
 
         let s = run && dsp.inputPeak > 0.0005
         if s != signal { signal = s }

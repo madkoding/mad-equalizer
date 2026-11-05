@@ -166,7 +166,6 @@ struct Biquad {
 final class DSP: @unchecked Sendable {
     static let stages = 21   // 16 bandas + low cut, high cut, shelf graves, shelf agudos, de-esser
     static let bands = 16
-    static let scopeSize = 1024
     static let lufsRing = 64
 
     private let coefsL = UnsafeMutablePointer<Biquad>.allocate(capacity: stages)
@@ -178,8 +177,11 @@ final class DSP: @unchecked Sendable {
     private var dirty = false
     private var preamp: Float = 1, level: Float = 1, autoGain: Float = 1, limit: Float = 0.94
     private var mono = false, bypass = false
+    /// Ancho estéreo (mid/side): 1 = original, 0 = mono, 2 = lados al doble.
+    private var width: Float = 1
     private var pPreamp: Float = 1, pLevel: Float = 1, pAutoGain: Float = 1, pLimit: Float = 0.94
     private var pMono = false, pBypass = false
+    private var pWidth: Float = 1
     private var agSmooth: Float = 1, agCoef: Float = 0.0005
     private var limGain: Float = 1, limRelease: Float = 0.9998
     private var fade: Float = 0, fadeStep: Float = 0
@@ -197,12 +199,6 @@ final class DSP: @unchecked Sendable {
     private var kSum = 0.0, kCount = 0, kBlockLen = 4800
     let lufsBlocks = UnsafeMutablePointer<Double>.allocate(capacity: lufsRing)
     private(set) var lufsBlockCount = 0
-
-    // Goniómetro: últimos puntos (lado, medio)
-    let scopeX = UnsafeMutablePointer<Float>.allocate(capacity: scopeSize)
-    let scopeY = UnsafeMutablePointer<Float>.allocate(capacity: scopeSize)
-    private(set) var scopeIndex = 0
-    private var scopeSkip = false
 
     // Medidores
     var rmsL: Float = 0, rmsR: Float = 0, inputPeak: Float = 0
@@ -225,8 +221,6 @@ final class DSP: @unchecked Sendable {
         spectrum.initialize(repeating: 0, count: DSP.bands)
         kState.initialize(repeating: 0, count: 8)
         lufsBlocks.initialize(repeating: 0, count: DSP.lufsRing)
-        scopeX.initialize(repeating: 0, count: DSP.scopeSize)
-        scopeY.initialize(repeating: 0, count: DSP.scopeSize)
     }
 
     /// Llamar antes de arrancar: reinicia estados y prepara un fundido de entrada de 300 ms.
@@ -248,12 +242,12 @@ final class DSP: @unchecked Sendable {
     }
 
     func update(left: [Biquad], right: [Biquad], preampDB: Float, level: Float, autoGainDB: Float,
-                limitDB: Float, mono: Bool, bypass: Bool) {
+                limitDB: Float, mono: Bool, width: Float, bypass: Bool) {
         os_unfair_lock_lock(lock)
         for i in 0..<min(left.count, DSP.stages) { pendingL[i] = left[i] }
         for i in 0..<min(right.count, DSP.stages) { pendingR[i] = right[i] }
         pPreamp = pow(10, preampDB / 20); pLevel = level; pAutoGain = pow(10, autoGainDB / 20)
-        pLimit = pow(10, limitDB / 20); pMono = mono; pBypass = bypass
+        pLimit = pow(10, limitDB / 20); pMono = mono; pWidth = width; pBypass = bypass
         dirty = true
         os_unfair_lock_unlock(lock)
     }
@@ -278,7 +272,7 @@ final class DSP: @unchecked Sendable {
                 coefsL.update(from: pendingL, count: DSP.stages)
                 coefsR.update(from: pendingR, count: DSP.stages)
                 preamp = pPreamp; level = pLevel; autoGain = pAutoGain; limit = pLimit
-                mono = pMono; bypass = pBypass
+                mono = pMono; width = pWidth; bypass = pBypass
                 dirty = false
             }
             os_unfair_lock_unlock(lock)
@@ -326,6 +320,10 @@ final class DSP: @unchecked Sendable {
                 }
                 l = Float(dl) * agSmooth; r = Float(dr) * agSmooth
                 if mono { let m = (l + r) * 0.5; l = m; r = m }
+                else if width != 1 {
+                    let m = (l + r) * 0.5, sd = (l - r) * 0.5 * width
+                    l = m + sd; r = m - sd
+                }
             }
 
             if fade < 1 { fade = min(1, fade + fadeStep) }
@@ -363,13 +361,6 @@ final class DSP: @unchecked Sendable {
                 lufsBlocks[lufsBlockCount % DSP.lufsRing] = kSum / Double(kCount)
                 lufsBlockCount += 1
                 kSum = 0; kCount = 0
-            }
-
-            scopeSkip.toggle()
-            if !scopeSkip {
-                scopeX[scopeIndex] = (r - l) * 0.7071
-                scopeY[scopeIndex] = (l + r) * 0.7071
-                scopeIndex = (scopeIndex + 1) % DSP.scopeSize
             }
 
             if oc >= 2 { o0[i * oc] = l; o0[i * oc + 1] = r }

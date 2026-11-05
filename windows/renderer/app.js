@@ -11,9 +11,9 @@ const STORE = 'mad-equalizer-v1';
 const defaults = {
   power: true, bypass: false,
   gainsL: Array(16).fill(0), gainsR: Array(16).fill(0),
-  preampDB: 0, level: 1, balance: 0, lowCutHz: 80, filters: [],
+  preampDB: 0, level: 1, balance: 0, width: 1, lowCutHz: 80, filters: [],
   propQ: false, autoGain: false, antiClip: true, rangeDB: 12,
-  spectrumMode: true, showCurve: true, scopeMode: false,
+  spectrumMode: true, showCurve: true,
   memories: [null, null, null, null],
 };
 const S = (() => {
@@ -143,17 +143,18 @@ function setPower(on) {
 function makeKey(parent, title, onClick, help) {
   const el = document.createElement('div');
   el.className = 'key';
-  el.innerHTML = '<span class="dot"></span><button></button>';
-  const btn = el.querySelector('button'), dot = el.querySelector('.dot');
+  el.innerHTML = '<button></button>';
+  const btn = el.querySelector('button');
   btn.textContent = title;
   if (help) btn.title = help;
   btn.addEventListener('click', onClick);
   parent.appendChild(el);
+  // El LED es una barra en el borde superior del propio botón: así se ve cuál está activo.
   return {
     set(on, opts = {}) {
-      dot.classList.toggle('on', !!on);
-      dot.classList.toggle('dim', !on && !!opts.dim);
-      dot.classList.toggle('blink', !!opts.blink);
+      btn.classList.toggle('on', !!on);
+      btn.classList.toggle('dim', !on && !!opts.dim);
+      btn.classList.toggle('blink', !!opts.blink);
       if (opts.label) btn.textContent = opts.label;
     },
   };
@@ -177,7 +178,6 @@ function buildKeys() {
   keys.auto = makeKey(mode, 'AUTO GAIN', () => { S.autoGain = !S.autoGain; changed(); }, 'Compensa el volumen para comparar curvas a igual loudness');
   keys.clip = makeKey(mode, 'ANTI CLIP', () => { S.antiClip = !S.antiClip; changed(); }, 'Baja la ganancia lo justo para que la curva no sature');
   keys.curve = makeKey(mode, 'CURVE', () => { S.showCurve = !S.showCurve; changed(); });
-  keys.scope = makeKey(mode, 'SCOPE', () => { S.scopeMode = !S.scopeMode; changed(); }, 'Goniómetro en lugar del VU derecho');
 }
 
 const knobs = [];
@@ -211,12 +211,15 @@ function buildKnobs() {
              min: Math.log10(20), max: Math.log10(200), def: Math.log10(80), step: 0.005, readout: () => String(S.lowCutHz) });
   makeKnob({ label: 'BALANCE', get: () => S.balance, set: v => (S.balance = v), min: -1, max: 1, def: 0, step: 0.02,
              readout: () => S.balance === 0 ? 'C' : (S.balance < 0 ? 'L' : 'R') + Math.round(Math.abs(S.balance) * 100) });
+  // Ancho estéreo (mid/side): 0 % = mono, 100 % = original, 200 % = lados al doble para separar instrumentos.
+  makeKnob({ label: 'WIDTH', get: () => S.width, set: v => (S.width = v), min: 0, max: 2, def: 1, step: 0.01,
+             readout: () => String(Math.round(S.width * 100)) });
 }
 
 // ---------------------------------------------------------------------------------------------
 // Faders: arrastrar la perilla la mueve en relativo; tocar el riel salta a ese punto
 
-const WELL_W = 1028, WELL_H = 290;
+const WELL_W = 1028, WELL_H = 335;
 function buildFaders() {
   const c = $('faders');
   const geo = G.wellGeometry(WELL_W);
@@ -322,16 +325,23 @@ function render() {
   keys.auto.set(S.autoGain);
   keys.clip.set(S.antiClip);
   keys.curve.set(S.showCurve);
-  keys.scope.set(S.scopeMode);
   knobs.forEach(k => k.draw());
   drawMeters();
 }
 
+/** Los VU miden lo mismo que el panel central (marca + display), para que queden alineados. */
+let vuH = 159;
+function vuHeight() {
+  const h = document.querySelector('header .center')?.offsetHeight;
+  if (h && h > 100) vuH = h;
+  return vuH;
+}
+
 function drawMeters() {
   const m = M;
-  G.drawVU($('vuL'), 230, 204, { position: m.left, channel: 'LEFT', peak: m.peakL, over: m.overL });
-  if (S.scopeMode) G.drawScope($('vuR'), 230, 204, m.scope);
-  else G.drawVU($('vuR'), 230, 204, { position: m.right, channel: 'RIGHT', peak: m.peakR, over: m.overR });
+  const vuH = vuHeight();
+  G.drawVU($('vuL'), 230, vuH, { position: m.left, channel: 'LEFT', peak: m.peakL, over: m.overL });
+  G.drawVU($('vuR'), 230, vuH, { position: m.right, channel: 'RIGHT', peak: m.peakR, over: m.overR });
   G.drawWell($('faders'), WELL_W, WELL_H, {
     gains: Array.from({ length: 16 }, (_, i) => gainOf(i)), range: S.rangeDB, selected: R.selected,
     spectrum: S.spectrumMode && S.power, levels: m.levels, peaks: m.peaks,
@@ -354,7 +364,7 @@ const M = {
   left: -0.04, right: -0.04, signal: false, levels: Array(16).fill(0), peaks: Array(16).fill(0), holds: Array(16).fill(0),
   peakL: 0, peakR: 0, overL: false, overR: false, overHoldL: 0, overHoldR: 0,
   lufsM: -Infinity, lufsS: -Infinity, lufsI: -Infinity, recent: [], gated: [],
-  peakHoldDB: -Infinity, crestDB: 0, peakWin: [], msWin: [], corr: 0, scope: null, scopeGain: 1, tick: 0,
+  peakHoldDB: -Infinity, crestDB: 0, peakWin: [], msWin: [], corr: 0, tick: 0,
 };
 
 /** 0 VU = -12 dBFS RMS (música actual); la escala VU es lineal en voltaje. */
@@ -411,15 +421,6 @@ function onMeters(d) {
     M.lufsS = loudness(M.recent.reduce((s, v) => s + v, 0) / M.recent.length);
   } else if (!run) { M.recent = []; M.lufsM = -Infinity; M.lufsS = -Infinity; }
   if (M.tick++ % 10 === 0) M.lufsI = integrated();
-
-  if (S.scopeMode && run) {
-    let amp = 0;
-    for (let k = 0; k < d.scope.length; k++) amp += d.scope[k] ** 2;
-    amp = Math.sqrt(amp / (d.scope.length / 2));
-    M.scopeGain += (Math.min(0.3 / Math.max(amp, 0.002), 60) - M.scopeGain) * 0.1;
-    for (let k = 0; k < d.scope.length; k++) d.scope[k] *= M.scopeGain;
-    M.scope = d.scope;
-  } else M.scope = null;
 
   M.signal = run && d.inPeak > 0.0005;
   drawMeters();

@@ -3,7 +3,6 @@
 // este procesador aplica también las etapas de EQ para que los medidores reaccionen igual.
 import { Biquad, bandFreqs } from './dsp.js';
 
-const SCOPE = 1024;
 const BANDS = 16;
 
 class MeterProcessor extends AudioWorkletProcessor {
@@ -18,7 +17,6 @@ class MeterProcessor extends AudioWorkletProcessor {
     this.kState = new Float64Array(8);
     this.kSum = 0; this.kCount = 0; this.kBlock = Math.round(fs * 0.1);
     this.blocks = [];
-    this.scope = new Float32Array(SCOPE * 2); this.scopeIdx = 0; this.skip = false;
     this.eqL = []; this.eqR = []; this.eqState = new Float64Array(64 * 4); this.eqGain = 1;
     this.reset();
     this.post = Math.round(fs / 30); this.count = 0;
@@ -77,13 +75,6 @@ class MeterProcessor extends AudioWorkletProcessor {
         this.blocks.push(this.kSum / this.kCount);
         this.kSum = 0; this.kCount = 0;
       }
-
-      this.skip = !this.skip;
-      if (!this.skip) {
-        this.scope[this.scopeIdx * 2] = (r - l) * 0.7071;
-        this.scope[this.scopeIdx * 2 + 1] = (l + r) * 0.7071;
-        this.scopeIdx = (this.scopeIdx + 1) % SCOPE;
-      }
     }
 
     this.count += frames;
@@ -91,16 +82,11 @@ class MeterProcessor extends AudioWorkletProcessor {
       this.count = 0;
       const spectrum = new Float32Array(BANDS);
       for (let b = 0; b < BANDS; b++) spectrum[b] = Math.sqrt(this.anaSum[b] / this.n);
-      const scope = new Float32Array(SCOPE * 2);
-      for (let k = 0; k < SCOPE; k++) {
-        const idx = (this.scopeIdx + k) % SCOPE;
-        scope[k * 2] = this.scope[idx * 2]; scope[k * 2 + 1] = this.scope[idx * 2 + 1];
-      }
       this.port.postMessage({
         rmsL: Math.sqrt(this.sumL / this.n), rmsR: Math.sqrt(this.sumR / this.n),
         peakL: this.peakL, peakR: this.peakR, overL: this.overL, overR: this.overR, inPeak: this.inPeak,
-        lr: this.lr, ll: this.ll, rr: this.rr, spectrum, blocks: this.blocks, scope,
-      }, [spectrum.buffer, scope.buffer]);
+        lr: this.lr, ll: this.ll, rr: this.rr, spectrum, blocks: this.blocks,
+      }, [spectrum.buffer]);
       this.blocks = [];
       this.reset();
     }
