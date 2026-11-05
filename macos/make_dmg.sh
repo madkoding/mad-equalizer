@@ -14,7 +14,7 @@ rm -rf "$STAGE" "$RW" "$DMG"
 mkdir -p "$STAGE/.background"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
-cp README.txt LEEME.txt "$STAGE/"
+for f in README.txt LEEME.txt; do sed "s/@VERSION@/$VERSION/g" "$f" > "$STAGE/$f"; done
 cp art/dmg_bg.tiff "$STAGE/.background/bg.tiff"
 
 hdiutil detach "/Volumes/$VOL" -force -quiet 2>/dev/null || true

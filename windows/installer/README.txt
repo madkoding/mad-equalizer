@@ -1,4 +1,4 @@
-MAD EQUALIZER 2.0 FOR WINDOWS
+MAD EQUALIZER @VERSION@ FOR WINDOWS
 16-band stereo graphic equalizer for all of your PC's audio
 =====================================================================
 
@@ -8,7 +8,7 @@ REQUIREMENTS
 
 
 INSTALLATION
-  1. Run MAD-Equalizer-2.0-Setup.exe and accept the administrator prompt.
+  1. Run MAD-Equalizer-@VERSION@-Setup.exe and accept the administrator prompt.
   2. If Equalizer APO is not installed yet, its installer opens
      automatically. When it shows the "Configurator", CHECK THE DEVICES
      YOU LISTEN ON (headphones, speakers, HDMI...) and click OK.
@@ -26,7 +26,7 @@ WINDOWS WON'T LET ME RUN IT ("WINDOWS PROTECTED YOUR PC")
   mark. Right-click the file > Properties > check "Unblock" > OK.
   Or open PowerShell in the folder where the file is and run:
 
-       Unblock-File .\MAD-Equalizer-2.0-Setup.exe
+       Unblock-File .\MAD-Equalizer-@VERSION@-Setup.exe
 
 
 THE EQ HAS NO EFFECT

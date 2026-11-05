@@ -4,6 +4,9 @@ const fs = require('fs');
 const path = require('path');
 
 const exePath = process.argv[2];
+// VERSION viene de pack.sh (1.2.3); se completa a cuatro números para el recurso de versión.
+const version = process.env.VERSION || require('./package.json').version;
+const [vMajor, vMinor, vPatch] = [...version.split(/[.-]/).map((n) => parseInt(n, 10) || 0), 0, 0, 0];
 const exe = ResEdit.NtExecutable.from(fs.readFileSync(exePath));
 const res = ResEdit.NtExecutableResource.from(exe);
 const ico = ResEdit.Data.IconFile.from(fs.readFileSync(path.join(__dirname, 'assets', 'icon.ico')));
@@ -12,10 +15,10 @@ const vi = ResEdit.Resource.VersionInfo.fromEntries(res.entries)[0];
 vi.setStringValues({ lang: 1033, codepage: 1200 }, {
   ProductName: 'MAD Equalizer', FileDescription: 'MAD Equalizer', CompanyName: 'MAD',
   OriginalFilename: 'MADEqualizer.exe', InternalName: 'MADEqualizer', LegalCopyright: 'MAD Equalizer',
-  ProductVersion: '2.0.0', FileVersion: '2.0.0',
+  ProductVersion: version, FileVersion: version,
 });
-vi.setFileVersion(2, 0, 0, 0, 1033);
-vi.setProductVersion(2, 0, 0, 0, 1033);
+vi.setFileVersion(vMajor, vMinor, vPatch, 0, 1033);
+vi.setProductVersion(vMajor, vMinor, vPatch, 0, 1033);
 vi.outputToResourceEntries(res.entries);
 res.outputResource(exe);
 fs.writeFileSync(exePath, Buffer.from(exe.generate()));

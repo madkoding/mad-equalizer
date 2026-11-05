@@ -1,4 +1,4 @@
-MAD EQUALIZER 2.0 PARA WINDOWS
+MAD EQUALIZER @VERSION@ PARA WINDOWS
 Ecualizador gráfico estéreo de 16 bandas para todo el audio del PC
 =====================================================================
 
@@ -8,7 +8,7 @@ REQUISITOS
 
 
 INSTALACIÓN
-  1. Ejecuta MAD-Equalizer-2.0-Setup.exe y acepta el aviso de
+  1. Ejecuta MAD-Equalizer-@VERSION@-Setup.exe y acepta el aviso de
      administrador.
   2. Si Equalizer APO aún no está instalado, su instalador se abre solo.
      Cuando aparezca el "Configurator", MARCA LOS DISPOSITIVOS DONDE
@@ -28,7 +28,7 @@ WINDOWS NO ME DEJA EJECUTARLO ("WINDOWS PROTEGIÓ SU PC")
   "Desbloquear" > Aceptar. O abre PowerShell en la carpeta del archivo
   y ejecuta:
 
-       Unblock-File .\MAD-Equalizer-2.0-Setup.exe
+       Unblock-File .\MAD-Equalizer-@VERSION@-Setup.exe
 
 
 EL ECUALIZADOR NO HACE EFECTO
