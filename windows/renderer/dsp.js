@@ -181,6 +181,12 @@ export function buildConfig(st, curveL, curveR, autoGain) {
   }
   lines.push(...filterStages(new Set(st.filters), st.lowCutHz).map(stageLine));
   if (st.filters.includes('mono')) lines.push('Copy: L=0.5*L+0.5*R R=0.5*L+0.5*R');
+  // Ancho estéreo: mezcla mid/side con la ganancia del lado = width (1 = sin cambios, 0 = mono, 2 = doble).
+  const w = typeof st.width === 'number' ? st.width : 1;
+  if (Math.abs(w - 1) > 0.005 && !st.filters.includes('mono')) {
+    const a = (1 + w) / 2, b = (1 - w) / 2;
+    lines.push(`Copy: L=${n(a, 4)}*L+${n(b, 4)}*R R=${n(b, 4)}*L+${n(a, 4)}*R`);
+  }
 
   const balL = st.balance > 0 ? 20 * Math.log10(Math.max(1 - st.balance, 0.001)) : 0;
   const balR = st.balance < 0 ? 20 * Math.log10(Math.max(1 + st.balance, 0.001)) : 0;

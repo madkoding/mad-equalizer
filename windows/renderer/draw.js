@@ -114,49 +114,10 @@ export function drawVU(canvas, w, h, { position, channel, peak, over }) {
 }
 
 // ---------------------------------------------------------------------------------------------
-// Goniómetro
-
-export function drawScope(canvas, w, h, points) {
-  const ctx = setup(canvas, w, h);
-  bezel(ctx, w, h);
-  const s = { x: 9, y: 9, w: w - 18, h: h - 18 };
-  const g = ctx.createRadialGradient(s.x + s.w / 2, s.y + s.h / 2, 0, s.x + s.w / 2, s.y + s.h / 2, s.w * 0.7);
-  g.addColorStop(0, 'rgb(8,20,36)'); g.addColorStop(1, 'rgb(3,5,10)');
-  rr(ctx, s.x, s.y, s.w, s.h, 5); ctx.fillStyle = g; ctx.fill();
-  ctx.save(); rr(ctx, s.x, s.y, s.w, s.h, 5); ctx.clip();
-  const cx = s.x + s.w / 2, cy = s.y + s.h / 2 + 4, R = Math.min(s.w, s.h) / 2 - 14, d = R * 0.7071;
-  ctx.strokeStyle = 'rgba(77,179,255,0.18)'; ctx.lineWidth = 0.7;
-  ctx.beginPath();
-  ctx.moveTo(cx - R, cy); ctx.lineTo(cx + R, cy); ctx.moveTo(cx, cy - R); ctx.lineTo(cx, cy + R);
-  ctx.moveTo(cx - d, cy - d); ctx.lineTo(cx + d, cy + d); ctx.moveTo(cx + d, cy - d); ctx.lineTo(cx - d, cy + d);
-  ctx.stroke();
-  ctx.strokeStyle = 'rgba(77,179,255,0.12)'; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.stroke();
-  ctx.fillStyle = 'rgba(77,179,255,0.55)'; ctx.font = wide(9); ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-  ctx.fillText('M', cx + 7, cy - R + 4); ctx.fillText('L', cx - d - 7, cy - d - 2);
-  ctx.fillText('R', cx + d + 7, cy - d - 2); ctx.fillText('S', cx + R + 6, cy - 6);
-  ctx.font = wide(8); ctx.fillText('GONIOMETER', s.x + 44, s.y + s.h - 9);
-  if (points && points.length) {
-    glow(ctx, C.led, 4, () => {
-      ctx.fillStyle = C.ledCore;
-      for (let k = 0; k < points.length; k += 2) {
-        const x = cx + Math.max(Math.min(points[k], 1.15), -1.15) * R;
-        const y = cy - Math.max(Math.min(points[k + 1], 1.15), -1.15) * R;
-        ctx.fillRect(x - 0.7, y - 0.7, 1.4, 1.4);
-      }
-    });
-  }
-  const rg = ctx.createLinearGradient(s.x, s.y, s.x + s.w * 0.35, s.y + s.h / 2);
-  rg.addColorStop(0, 'rgba(255,255,255,0.08)'); rg.addColorStop(1, 'rgba(255,255,255,0)');
-  ctx.fillStyle = rg; ctx.fillRect(s.x, s.y, s.w, s.h);
-  ctx.restore();
-  rr(ctx, s.x, s.y, s.w, s.h, 5); ctx.strokeStyle = '#000'; ctx.lineWidth = 1.5; ctx.stroke();
-}
-
-// ---------------------------------------------------------------------------------------------
 // Faders: geometría compartida con el manejo del ratón en app.js
 
 export const WELL = {
-  top: 16, colH: 250, colW: 46, gap: 8, scaleW: 32, cap: { w: 30, h: 18 },
+  top: 16, colH: 295, colW: 46, gap: 8, scaleW: 32, cap: { w: 30, h: 18 },
   get usable() { return this.colH - this.cap.h; },
   get innerW() { return this.scaleW * 2 + 16 * this.colW + 17 * this.gap; },
 };

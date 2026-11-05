@@ -12,7 +12,8 @@ A vintage 16-band stereo graphic equalizer for **all** of your computer's audio,
 
 - 16 ISO bands (20 Hz – 20 kHz), ±12 dB or ±6 dB range, constant or proportional Q
 - Real-time spectrum analyzer on the fader LEDs, and the real summed response curve
-- VU meters with peak/OVER, LUFS (momentary, short-term, integrated), peak hold, crest factor, phase correlation and goniometer
+- VU meters with peak/OVER, LUFS (momentary, short-term, integrated), peak hold, crest factor and phase correlation
+- **Stereo width** knob (mid/side, 0–200 %): collapse to mono or widen the sides to separate instruments
 - Presets, 4 memories, A/B comparison, auto-gain and independent L/R editing
 - Resizable window that keeps its proportions (minimum 60 % of the original size); on Windows the size is remembered
 - Low cut, high cut, loudness, bass/treble boost, de-esser and mono filters
