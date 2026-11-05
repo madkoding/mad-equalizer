@@ -793,10 +793,12 @@ struct RowLabel: View {
     let text: String
     init(_ text: String) { self.text = text }
     var body: some View {
-        Text(text).font(.wide(10)).tracking(0.8)
+        Text(text).font(.wide(10)).tracking(0.5)
             .foregroundStyle(Color.black.opacity(0.85))
-            .frame(width: 54, height: 18, alignment: .trailing)
-            .padding(.trailing, 8)
+            .lineLimit(1)
+            .frame(width: 54, height: 18, alignment: .center)
+            .padding(.leading, 9)
+            .padding(.trailing, 3)
             .background(UnevenRoundedRectangle(topLeadingRadius: 9, bottomLeadingRadius: 9)
                 .fill(Palette.led.opacity(0.85)))
             .padding(.top, 5)
@@ -1131,14 +1133,14 @@ struct RootView: View {
     }
 
     private func row<C: View>(_ label: String, @ViewBuilder _ content: () -> C) -> some View {
-        HStack(spacing: 4) {
+        HStack(spacing: 3) {
             RowLabel(label)
             content()
         }
     }
 
     private var controls: some View {
-        HStack(alignment: .center, spacing: 14) {
+        HStack(alignment: .center, spacing: 12) {
             PowerButton(on: eq.running) { eq.togglePower() }
             VStack(spacing: 8) {
                 LEDKey("BYPASS", on: eq.bypass) { eq.bypass.toggle() }
@@ -1183,17 +1185,17 @@ struct RootView: View {
             Spacer(minLength: 0)
             HStack(spacing: 0) {
                 Knob(value: $eq.preampDB, range: -12...12, defaultValue: 0, step: 0.5,
-                     label: "PRE-AMP", readout: String(format: "%+.1f", eq.preampDB), width: 58)
+                     label: "PRE-AMP", readout: String(format: "%+.1f", eq.preampDB), width: 56)
                 Knob(value: $eq.level, range: 0...1.5, defaultValue: 1, step: 0.01,
-                     label: "LEVEL", readout: "\(Int((eq.level * 100).rounded()))", width: 58)
+                     label: "LEVEL", readout: "\(Int((eq.level * 100).rounded()))", width: 56)
                 Knob(value: Binding(get: { log10(eq.lowCutHz) }, set: { eq.lowCutHz = pow(10, $0) }),
                      range: log10(20)...log10(200), defaultValue: log10(80), step: 0.005,
-                     label: "LOW CUT", readout: "\(Int(eq.lowCutHz.rounded()))", width: 58)
+                     label: "LOW CUT", readout: "\(Int(eq.lowCutHz.rounded()))", width: 56)
                 Knob(value: $eq.limitDB, range: -12...0, defaultValue: -0.5, step: 0.5,
-                     label: "LIMIT", readout: String(format: "%.1f", eq.limitDB), width: 58)
+                     label: "LIMIT", readout: String(format: "%.1f", eq.limitDB), width: 56)
                 // Ancho estéreo (mid/side): 0 % = mono, 100 % = original, 200 % = lados al doble para separar instrumentos.
                 Knob(value: $eq.width, range: 0...2, defaultValue: 1, step: 0.01,
-                     label: "WIDTH", readout: "\(Int((eq.width * 100).rounded()))", width: 58)
+                     label: "WIDTH", readout: "\(Int((eq.width * 100).rounded()))", width: 56)
             }
         }
         .frame(height: 134)

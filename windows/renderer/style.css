@@ -87,7 +87,7 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 #faders { display: block; width: 1028px; height: 252px; }
 
 /* Controles */
-.controls { display: flex; align-items: center; gap: 14px; height: 134px; }
+.controls { display: flex; align-items: center; gap: 12px; height: 134px; }
 .power-wrap { display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 6px; }
 #power { position: relative; width: 52px; height: 52px; border-radius: 50%; background: #000; }
 #power .ring { position: absolute; inset: 2.5px; border-radius: 50%; border: 2.5px solid var(--led-off); }
@@ -101,9 +101,9 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 .col { display: flex; flex-direction: column; gap: 8px; }
 .sep { width: 1px; height: 124px; background: rgba(0,0,0,0.6); box-shadow: 1px 0 rgba(255,255,255,0.06); }
 .rows { display: flex; flex-direction: column; gap: 6px; }
-.rows .row { display: flex; gap: 4px; align-items: flex-start; }
-.pill { width: 62px; height: 18px; margin-top: 5px; padding-right: 8px; text-align: right; line-height: 18px;
-  font-size: 6.1px; letter-spacing: 0.8px; color: rgba(0,0,0,0.85);
+.rows .row { display: flex; gap: 3px; align-items: flex-start; }
+.pill { width: 66px; height: 18px; margin-top: 5px; padding: 0 3px 0 9px; text-align: center; line-height: 18px; white-space: nowrap;
+  font-size: 6.1px; letter-spacing: 0.5px; color: rgba(0,0,0,0.85);
   background: rgba(77,179,255,0.85); border-radius: 9px 0 0 9px; }
 
 .key { display: flex; flex-direction: column; align-items: center; }
@@ -122,7 +122,7 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.9), 0 0 1px rgba(0,0,0,0.65); }
 
 .knobs { display: flex; gap: 0; margin-left: auto; }
-.knobs .knob { width: 58px; }
+.knobs .knob { width: 56px; }
 .knob { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .knob canvas { width: 54px; height: 54px; }
 .knob .silk { font-size: 6.1px; }
