@@ -5,7 +5,7 @@ export const C = {
   led: 'rgb(77,179,255)', ledCore: 'rgb(199,235,255)', ledOff: 'rgb(15,28,48)',
   silk: 'rgb(209,217,227)', ink: 'rgb(10,26,51)', red: 'rgb(199,31,26)', redOff: 'rgb(51,10,10)',
 };
-export const wide = (size) => `${size * 0.64}px Michroma`;
+export const wide = (size) => `900 ${size * 0.64 * 0.89}px MADMicrogramma`;
 const rad = (d) => d * Math.PI / 180;
 
 /** Ajusta el canvas a la densidad de píxeles y devuelve un contexto en px CSS. */
@@ -24,7 +24,10 @@ export function setup(canvas, w, h) {
 
 function rr(ctx, x, y, w, h, r) { ctx.beginPath(); ctx.roundRect(x, y, w, h, r); }
 
+/** Bloom: halo ancho y suave que suma luz sobre el fondo, más el núcleo brillante del LED. */
 function glow(ctx, color, blur, fn) {
+  ctx.save(); ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 0.55;
+  ctx.shadowColor = color; ctx.shadowBlur = blur * 3.4; fn(); ctx.restore();
   ctx.save(); ctx.shadowColor = color; ctx.shadowBlur = blur; fn(); ctx.restore();
 }
 
@@ -117,7 +120,7 @@ export function drawVU(canvas, w, h, { position, channel, peak, over }) {
 // Faders: geometría compartida con el manejo del ratón en app.js
 
 export const WELL = {
-  top: 16, colH: 295, colW: 46, gap: 8, scaleW: 32, cap: { w: 30, h: 18 },
+  top: 14, colH: 212, colW: 46, gap: 8, scaleW: 32, cap: { w: 30, h: 18 },
   get usable() { return this.colH - this.cap.h; },
   get innerW() { return this.scaleW * 2 + 16 * this.colW + 17 * this.gap; },
 };
