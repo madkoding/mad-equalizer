@@ -435,7 +435,6 @@ final class MeterModel: ObservableObject {
     @Published var grDB: Double = 0
 
     private var timer: Timer?
-    private var askedAccessibility = false
     private var tick = 0
     private var holds = [Int](repeating: 0, count: 16)
     private var overHoldL = 0, overHoldR = 0
@@ -593,6 +592,7 @@ final class NowPlaying: ObservableObject {
     private var rich: MediaInfo?       // notificaciones de Spotify / Música
     private var remote: MediaInfo?     // MediaRemote
     private var timer: Timer?
+    private var askedAccessibility = false
     private var observers: [NSObjectProtocol] = []
     private let demo = ProcessInfo.processInfo.environment["MAD_DEMO_PLAYER"] != nil
 
