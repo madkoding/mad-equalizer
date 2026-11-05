@@ -107,7 +107,7 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
   background: rgba(77,179,255,0.85); border-radius: 9px 0 0 9px; }
 
 .key { display: flex; flex-direction: column; align-items: center; }
-.key button { position: relative; width: 68px; height: 28px; padding-top: 3px; border-radius: 3px; font-size: 6.1px; letter-spacing: 0.4px; white-space: nowrap;
+.key button { position: relative; width: 68px; height: 28px; padding-top: 3px; border-radius: 3px; font-size: 5.9px; letter-spacing: 0.2px; white-space: nowrap;
   color: rgba(209,217,227,0.9);
   background: linear-gradient(180deg, rgb(64,64,64), rgb(28,28,28));
   box-shadow: inset 0 0 0 1px rgba(0,0,0,0.9), inset 0 2px 0 -1px rgba(255,255,255,0.13), 0 2px 3px rgba(0,0,0,0.65); }
@@ -125,7 +125,7 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 .knobs .knob { width: 56px; }
 .knob { display: flex; flex-direction: column; align-items: center; gap: 5px; }
 .knob canvas { width: 54px; height: 54px; }
-.knob .silk { font-size: 6.1px; }
+.knob .silk { font-size: 5.5px; letter-spacing: 0.2px; }
 
 /* Reproductor: aparece abajo cuando se detecta una app de música */
 .player { display: flex; align-items: center; gap: 16px; height: 70px; padding: 0 16px; border-radius: 10px;
@@ -137,7 +137,7 @@ canvas.meter { width: 230px; height: 159px; border-radius: 10px; box-shadow: 0 0
 .player .art { width: 48px; height: 48px; border-radius: 5px; display: flex; align-items: center; justify-content: center; color: var(--led-core);
   background: radial-gradient(circle at 30% 25%, rgb(32,78,128), rgb(10,24,44) 70%); box-shadow: 0 0 0 1.5px #000, 0 0 10px rgba(77,179,255,0.35), 0 0 28px rgba(77,179,255,0.2); }
 .player .art svg { width: 24px; height: 24px; filter: drop-shadow(0 0 3px var(--led)) drop-shadow(0 0 9px rgba(77,179,255,0.6)); }
-.player .tags { width: 270px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.player .tags { text-transform: uppercase; width: 270px; display: flex; flex-direction: column; gap: 5px; min-width: 0; }
 .player .t-title { font-size: 9.2px; letter-spacing: 0.4px; color: var(--led-core); text-shadow: var(--bloom-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .player .t-artist { font-size: 7.1px; letter-spacing: 0.6px; color: var(--silk); white-space: nowrap; }
 .player .t-album { font-size: 6.0px; letter-spacing: 0.5px; color: rgba(77,179,255,0.6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

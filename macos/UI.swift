@@ -727,7 +727,7 @@ struct Knob: View {
                 .onEnded { _ in drag.value = nil })
             .simultaneousGesture(TapGesture(count: 2).onEnded { value = defaultValue })
             SegText(readout, cells: 4, size: 10)
-            Silk(label, 10)
+            Silk(label, 8.6)
         }
         .frame(width: width)
     }
@@ -741,7 +741,7 @@ struct KeyStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         let p = configuration.isPressed
         return configuration.label
-            .font(.wide(10)).tracking(0.4)
+            .font(.wide(9.2)).tracking(0.2)
             .foregroundStyle(Palette.silk.opacity(0.9))
             .lineLimit(1)
             .padding(.top, 3)
@@ -924,6 +924,7 @@ struct PlayerBar: View {
                     .foregroundStyle(Palette.led.opacity(0.6))
             }
             .lineLimit(1)
+            .textCase(.uppercase)
             .frame(width: 270, alignment: .leading)
             .opacity(i == nil ? 0.35 : 1)
 
