@@ -30,7 +30,7 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: windows/package-lock.json
-      - uses: actions/configure-pages@v5
+      - uses: actions/configure-pages@v6
       - name: Install Electron and Xvfb
         working-directory: windows
         run: |
@@ -40,8 +40,8 @@ jobs:
         working-directory: windows
         run: |
           xvfb-run -a -s "-screen 0 2400x1800x24" npx electron . --no-sandbox --screenshot="$GITHUB_WORKSPACE/docs/img/screenshot.png"
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: docs
       - id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@v5
