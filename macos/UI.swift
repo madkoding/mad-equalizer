@@ -1034,8 +1034,16 @@ private struct CenterHeightKey: PreferenceKey {
 
 struct RootView: View {
     @StateObject private var eq = EQModel()
-    @StateObject private var meters = MeterModel()
-    @StateObject private var player = NowPlaying()
+    // Se guardan sin observarlos: RootView sólo los pasa a las vistas hijas, que sí los observan.
+    // Con @StateObject, cada tick de los medidores (30 por segundo) recalculaba la ventana entera.
+    @StateObject private var models = Models()
+    private var meters: MeterModel { models.meters }
+    private var player: NowPlaying { models.player }
+
+    @MainActor private final class Models: ObservableObject {
+        let meters = MeterModel()
+        let player = NowPlaying()
+    }
     @State private var vuHeight: CGFloat = 137
     static let size = CGSize(width: 1120, height: 660)
     /// Franja superior de la ventana (zona de la barra de título oculta): lleva la serigrafía.
