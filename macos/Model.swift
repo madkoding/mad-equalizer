@@ -449,8 +449,18 @@ final class MeterModel: ObservableObject {
         let debug = ProcessInfo.processInfo.environment["EQ_DEBUG"] != nil
         timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 30, repeats: true) { [weak self, weak eq] _ in
             guard let self, let eq else { return }
-            Task { @MainActor in self.step(eq, debug: debug) }
+            Task { @MainActor in
+                // Con la ventana minimizada, tapada o la app oculta nadie ve los medidores: se
+                // actualizan a 2 Hz en vez de 30 (el anillo de LUFS guarda 6,4 s, el integrado no pierde bloques).
+                self.hiddenTicks = Self.windowVisible ? 0 : self.hiddenTicks + 1
+                if self.hiddenTicks % 15 == 0 { self.step(eq, debug: debug) }
+            }
         }
+    }
+
+    private var hiddenTicks = 0
+    private static var windowVisible: Bool {
+        NSApp.windows.contains { $0.isVisible && $0.occlusionState.contains(.visible) }
     }
 
     func resetIntegrated() {
