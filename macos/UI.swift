@@ -309,51 +309,81 @@ struct Bezel {
     }
 }
 
+/// El VU se dibuja en capas: lo fijo (bisel, esfera, escala, textos, tapa, brillo) en vistas cuyas
+/// entradas no cambian, así SwiftUI no las vuelve a dibujar; sólo la aguja y el peak meter se
+/// redibujan en cada tick de los medidores.
 struct VUMeter: View {
     let position: Double
     let channel: String
     let peak: Double
     let over: Bool
 
-    private func pos(_ db: Double) -> Double { (pow(10, db / 20) - 0.1) / (pow(10, 0.15) - 0.1) }
+    var body: some View {
+        ZStack {
+            VUFace(channel: channel)
+            VUNeedle(position: position)
+            VUGlass()
+            VUPeak(peak: peak, over: over)
+        }
+    }
+}
+
+/// Geometría común a todas las capas del VU.
+private struct VUGeometry {
+    let face: CGRect
+    let facePath: Path
+    let R: CGFloat
+    let pivot: CGPoint
+
+    init(_ size: CGSize) {
+        face = CGRect(x: 9, y: 9, width: size.width - 18, height: size.height - 18 - 20)
+        facePath = Path(roundedRect: face, cornerRadius: 5)
+        // El arco (con sus números) debe caber a lo ancho; el pivote queda bajo la tapa inferior.
+        R = min(face.height * 0.8, (face.width / 2 - 20) / sin(40 * .pi / 180) - 16)
+        pivot = CGPoint(x: face.midX, y: face.minY + 34 + R)
+    }
+
+    static func pos(_ db: Double) -> Double { (pow(10, db / 20) - 0.1) / (pow(10, 0.15) - 0.1) }
+
+    func pt(_ p: Double, _ r: CGFloat) -> CGPoint {
+        let a = (-40 + 80 * p) * .pi / 180
+        return CGPoint(x: pivot.x + r * CGFloat(sin(a)), y: pivot.y - r * CGFloat(cos(a)))
+    }
+}
+
+private struct VUFace: View {
+    let channel: String
 
     var body: some View {
         Canvas { ctx, size in
+            let g = VUGeometry(size), face = g.face
             Bezel.draw(ctx, size)
-            let face = CGRect(x: 9, y: 9, width: size.width - 18, height: size.height - 18 - 20)
-            let facePath = Path(roundedRect: face, cornerRadius: 5)
-            ctx.fill(facePath, with: .radialGradient(
+            ctx.fill(g.facePath, with: .radialGradient(
                 Gradient(colors: [Color(red: 0.90, green: 0.96, blue: 1.0), Color(red: 0.64, green: 0.82, blue: 0.97),
                                   Color(red: 0.28, green: 0.48, blue: 0.72)]),
                 center: CGPoint(x: face.midX, y: face.maxY), startRadius: 0, endRadius: face.width * 0.85))
 
             ctx.drawLayer { l in
-                l.clip(to: facePath)
-                // El arco (con sus números) debe caber a lo ancho; el pivote queda bajo la tapa inferior.
-                let R = min(face.height * 0.8, (face.width / 2 - 20) / sin(40 * .pi / 180) - 16)
-                let pivot = CGPoint(x: face.midX, y: face.minY + 34 + R)
-                func pt(_ p: Double, _ r: CGFloat) -> CGPoint {
-                    let a = (-40 + 80 * p) * .pi / 180
-                    return CGPoint(x: pivot.x + r * CGFloat(sin(a)), y: pivot.y - r * CGFloat(cos(a)))
-                }
-                let p0 = pos(0)
+                l.clip(to: g.facePath)
+                let R = g.R, p0 = VUGeometry.pos(0)
                 var arc = Path()
-                for k in 0...40 { let p = p0 * Double(k) / 40; k == 0 ? arc.move(to: pt(p, R)) : arc.addLine(to: pt(p, R)) }
+                for k in 0...40 { let p = p0 * Double(k) / 40; k == 0 ? arc.move(to: g.pt(p, R)) : arc.addLine(to: g.pt(p, R)) }
                 l.stroke(arc, with: .color(Palette.ink), lineWidth: 1.2)
                 var red = Path()
-                for k in 0...20 { let p = p0 + (1 - p0) * Double(k) / 20; k == 0 ? red.move(to: pt(p, R + 2)) : red.addLine(to: pt(p, R + 2)) }
+                for k in 0...20 { let p = p0 + (1 - p0) * Double(k) / 20; k == 0 ? red.move(to: g.pt(p, R + 2)) : red.addLine(to: g.pt(p, R + 2)) }
                 l.stroke(red, with: .color(Palette.redZone), lineWidth: 5)
 
                 let marks: [(Double, String)] = [(-20, "20"), (-10, "10"), (-7, "7"), (-5, "5"), (-3, "3"), (-2, "2"),
                                                  (-1, "1"), (0, "0"), (1, "1"), (2, "2"), (3, "3")]
                 for (db, lab) in marks {
-                    let p = pos(db), c = db > 0 ? Palette.redZone : Palette.ink
-                    var t = Path(); t.move(to: pt(p, R - 3)); t.addLine(to: pt(p, R + 7))
+                    let p = VUGeometry.pos(db), c = db > 0 ? Palette.redZone : Palette.ink
+                    var t = Path(); t.move(to: g.pt(p, R - 3)); t.addLine(to: g.pt(p, R + 7))
                     l.stroke(t, with: .color(c), lineWidth: db == 0 ? 1.8 : 1.1)
-                    l.draw(Text(lab).font(.wide(10)).foregroundColor(c), at: pt(p, R + 16))
+                    l.draw(Text(lab).font(.wide(10)).foregroundColor(c), at: g.pt(p, R + 16))
                 }
                 for db in [-15.0, -8.5, -6, -4, -2.5, -1.5, -0.5, 0.5, 1.5, 2.5] {
-                    var t = Path(); t.move(to: pt(pos(db), R)); t.addLine(to: pt(pos(db), R + 4))
+                    let p = VUGeometry.pos(db)
+                    var t = Path(); t.move(to: g.pt(p, R)); t.addLine(to: g.pt(p, R + 4))
                     l.stroke(t, with: .color(db > 0 ? Palette.redZone : Palette.ink), lineWidth: 0.8)
                 }
                 l.draw(Text("VU").font(.wide(22)).foregroundColor(Palette.ink),
@@ -362,15 +392,39 @@ struct VUMeter: View {
                        at: CGPoint(x: face.minX + 24, y: face.maxY - 11))
                 l.draw(Text("MAD").font(.wide(9)).tracking(1).foregroundColor(Palette.ink.opacity(0.75)),
                        at: CGPoint(x: face.maxX - 22, y: face.maxY - 11))
+            }
+            ctx.draw(Text("PK").font(.wide(9)).foregroundColor(Palette.silk.opacity(0.6)),
+                     at: CGPoint(x: face.minX + 8, y: face.maxY + 11))
+        }
+        .shadow(color: Palette.led.opacity(0.3), radius: 14)
+        .shadow(color: Palette.led.opacity(0.16), radius: 36)
+    }
+}
 
-                var needle = Path()
-                needle.move(to: pt(position, 0))
-                needle.addLine(to: pt(position, R + 12))
-                l.drawLayer { s in
-                    s.addFilter(.shadow(color: .black.opacity(0.35), radius: 1.5, x: 2, y: 2))
-                    s.stroke(needle, with: .color(Color(red: 0.07, green: 0.07, blue: 0.09)),
-                             style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
-                }
+private struct VUNeedle: View {
+    let position: Double
+
+    var body: some View {
+        Canvas { ctx, size in
+            let g = VUGeometry(size)
+            ctx.clip(to: g.facePath)
+            var needle = Path()
+            needle.move(to: g.pt(position, 0))
+            needle.addLine(to: g.pt(position, g.R + 12))
+            ctx.addFilter(.shadow(color: .black.opacity(0.35), radius: 1.5, x: 2, y: 2))
+            ctx.stroke(needle, with: .color(Color(red: 0.07, green: 0.07, blue: 0.09)),
+                       style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
+        }
+    }
+}
+
+/// Tapa del pivote y brillo del cristal, por encima de la aguja.
+private struct VUGlass: View {
+    var body: some View {
+        Canvas { ctx, size in
+            let g = VUGeometry(size), face = g.face
+            ctx.drawLayer { l in
+                l.clip(to: g.facePath)
                 let cover = Path(ellipseIn: CGRect(x: face.midX - face.width * 0.3, y: face.maxY - 14,
                                                    width: face.width * 0.6, height: 40))
                 l.fill(cover, with: .linearGradient(Gradient(colors: [Color(white: 0.2), Color(white: 0.05)]),
@@ -380,11 +434,21 @@ struct VUMeter: View {
                                                          startPoint: CGPoint(x: face.minX, y: face.minY),
                                                          endPoint: CGPoint(x: face.minX + face.width * 0.35, y: face.midY)))
             }
-            ctx.stroke(facePath, with: .color(.black), lineWidth: 1.5)
+            ctx.stroke(g.facePath, with: .color(.black), lineWidth: 1.5)
+        }
+        .allowsHitTesting(false)
+    }
+}
 
-            // Peak meter: -40 a 0 dBFS, los últimos 4 segmentos (> -6 dB) en blanco, y OVER
+/// Peak meter: -40 a 0 dBFS, los últimos 4 segmentos (> -6 dB) en blanco, y OVER.
+private struct VUPeak: View {
+    let peak: Double
+    let over: Bool
+
+    var body: some View {
+        Canvas { ctx, size in
+            let face = VUGeometry(size).face
             let y = face.maxY + 7
-            ctx.draw(Text("PK").font(.wide(9)).foregroundColor(Palette.silk.opacity(0.6)), at: CGPoint(x: face.minX + 8, y: y + 4))
             let overW: CGFloat = 36
             let x0 = face.minX + 20, segW = face.width - 20 - overW - 6
             let n = 24, sw = segW / CGFloat(n)
@@ -404,8 +468,7 @@ struct VUMeter: View {
             ctx.draw(Text("OVER").font(.wide(8)).foregroundColor(over ? .white : Color(red: 0.5, green: 0.22, blue: 0.22)),
                      at: CGPoint(x: overRect.midX, y: overRect.midY))
         }
-        .shadow(color: Palette.led.opacity(0.3), radius: 14)
-        .shadow(color: Palette.led.opacity(0.16), radius: 36)
+        .allowsHitTesting(false)
     }
 }
 
@@ -1034,8 +1097,16 @@ private struct CenterHeightKey: PreferenceKey {
 
 struct RootView: View {
     @StateObject private var eq = EQModel()
-    @StateObject private var meters = MeterModel()
-    @StateObject private var player = NowPlaying()
+    // Se guardan sin observarlos: RootView sólo los pasa a las vistas hijas, que sí los observan.
+    // Con @StateObject, cada tick de los medidores (30 por segundo) recalculaba la ventana entera.
+    @StateObject private var models = Models()
+    private var meters: MeterModel { models.meters }
+    private var player: NowPlaying { models.player }
+
+    @MainActor private final class Models: ObservableObject {
+        let meters = MeterModel()
+        let player = NowPlaying()
+    }
     @State private var vuHeight: CGFloat = 137
     static let size = CGSize(width: 1120, height: 660)
     /// Franja superior de la ventana (zona de la barra de título oculta): lleva la serigrafía.
