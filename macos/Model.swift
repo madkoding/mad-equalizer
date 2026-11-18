@@ -607,7 +607,6 @@ final class NowPlaying: ObservableObject {
     private var rich: [String: MediaInfo] = [:]      // notificaciones, por bundle
     private var remote: MediaInfo?                   // MediaRemote
     private var heard: MediaInfo?                    // último reproductor detectado por su audio
-    private var scripts: [String: NSAppleScript] = [:]
     private var denied: Set<String> = []             // apps sin permiso de Automatización
     private var playerCache: [String: Bool] = [:]
     private var timer: Timer?
@@ -769,19 +768,42 @@ final class NowPlaying: ObservableObject {
 
     /// Sólo se consulta una app si está abierta (si no, AppleScript la abriría) y si no se ha negado
     /// el permiso de Automatización.
+    /// Spotify tarda ~150 ms en responder a AppleScript: la consulta va en una cola propia para no
+    /// congelar la interfaz cada 2 s. Los scripts compilados sólo se usan desde esa cola.
     private func pollScripts() {
+        guard !polling else { return }
+        var targets: [String: String] = [:]
         for (bundle, source) in Self.scriptSources {
-            guard !denied.contains(bundle), running(bundle) else { scripted[bundle] = nil; continue }
-            let script = scripts[bundle] ?? NSAppleScript(source: source)
-            scripts[bundle] = script
-            var err: NSDictionary?
-            guard let r = script?.executeAndReturnError(&err), err == nil else {
-                if (err?[NSAppleScript.errorNumber] as? Int) == -1743 { denied.insert(bundle) }
-                scripted[bundle] = nil
-                continue
-            }
-            scripted[bundle] = scriptInfo(r, bundle: bundle)
+            if !denied.contains(bundle), running(bundle) { targets[bundle] = source } else { scripted[bundle] = nil }
         }
+        guard !targets.isEmpty else { return }
+        polling = true
+        Self.scriptQueue.async {
+            var results: [String: (NSAppleEventDescriptor?, Int?)] = [:]
+            for (bundle, source) in targets {
+                let script = Self.compiled[bundle] ?? NSAppleScript(source: source)
+                Self.compiled[bundle] = script
+                var err: NSDictionary?
+                let r = script?.executeAndReturnError(&err)
+                results[bundle] = (err == nil ? r : nil, err?[NSAppleScript.errorNumber] as? Int)
+            }
+            DispatchQueue.main.async { [weak self] in
+                MainActor.assumeIsolated { self?.applyScripts(results) }
+            }
+        }
+    }
+
+    private static let scriptQueue = DispatchQueue(label: "mad.nowplaying.applescript")
+    nonisolated(unsafe) private static var compiled: [String: NSAppleScript] = [:]
+    private var polling = false
+
+    private func applyScripts(_ results: [String: (NSAppleEventDescriptor?, Int?)]) {
+        polling = false
+        for (bundle, (r, code)) in results {
+            if code == -1743 { denied.insert(bundle) }
+            scripted[bundle] = r.flatMap { scriptInfo($0, bundle: bundle) }
+        }
+        recompute()
     }
 
     private func scriptInfo(_ r: NSAppleEventDescriptor, bundle: String) -> MediaInfo? {
